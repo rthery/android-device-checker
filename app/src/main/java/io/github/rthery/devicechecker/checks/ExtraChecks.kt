@@ -1,0 +1,206 @@
+package io.github.rthery.devicechecker.checks
+
+import io.github.rthery.devicechecker.compat.Compat
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.TrafficStats
+import android.os.BatteryManager
+import android.os.Environment
+import android.telephony.TelephonyManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.MessageDigest
+import kotlin.coroutines.resume
+import kotlin.random.Random
+
+private const val CONNECTIVITY_URL = "https://connectivitycheck.gstatic.com/generate_204"
+private const val NETWORK_TIMEOUT_MS = 10_000
+private const val SD_TEST_BYTES = 16 * 1024 * 1024
+private const val SDP_MAX_UA = 500_000
+private const val SDP_USB3_MAX_UA = 900_000
+
+val extraChecks = listOf(
+    Check("audio.effects", "Voice processing effects") {
+        val audio = context.getSystemService(AudioManager::class.java)
+        val mics = Compat.microphones(audio)
+        val aec = AcousticEchoCanceler.isAvailable()
+        val ns = NoiseSuppressor.isAvailable()
+        val agc = AutomaticGainControl.isAvailable()
+        val details = "Echo canceller: $aec\nNoise suppressor: $ns\nGain control: $agc\nMicrophones:\n" +
+            mics.joinToString("\n") { "  $it" }
+        if (aec && ns) pass("Echo cancellation and noise suppression available, ${mics.size} mic(s)", details)
+        else warn("Missing ${listOfNotNull("echo cancellation".takeIf { !aec }, "noise suppression".takeIf { !ns }).joinToString(" and ")}", details)
+    },
+
+    Check("network.wifi", "Wi-Fi internet") {
+        if (!profile.stockHasWifi) return@Check notApplicable("Stock has no Wi-Fi")
+        probeInternet(NetworkCapabilities.TRANSPORT_WIFI)
+            ?: warn("No Wi-Fi network with internet. Connect to Wi-Fi and run again.")
+    },
+
+    Check("network.cellular", "Mobile data") {
+        if (!profile.stockHasTelephony) return@Check notApplicable("Stock has no RIL")
+        val telephony = context.getSystemService(TelephonyManager::class.java)
+        if (telephony.simState != TelephonyManager.SIM_STATE_READY) return@Check warn("No SIM ready. Insert a SIM with data and run again.")
+        probeInternet(NetworkCapabilities.TRANSPORT_CELLULAR)
+            ?: fail("SIM ready but no mobile data network came up in ${NETWORK_TIMEOUT_MS / 1000} s", "Check that mobile data is on and the APN is set.")
+    },
+
+    Check("network.trafficstats", "Traffic accounting") {
+        val total = TrafficStats.getTotalRxBytes()
+        val before = TrafficStats.getUidRxBytes(android.os.Process.myUid())
+        probeInternet(NetworkCapabilities.TRANSPORT_WIFI) ?: probeInternet(NetworkCapabilities.TRANSPORT_CELLULAR)
+        val after = TrafficStats.getUidRxBytes(android.os.Process.myUid())
+        val details = "Total RX $total\nApp RX before $before, after $after\nro.kernel.ebpf.supported=${prop("ro.kernel.ebpf.supported").ifEmpty { "unset" }}\nKernel ${System.getProperty("os.version")}"
+        when {
+            total == TrafficStats.UNSUPPORTED.toLong() -> warn("Traffic stats unsupported: data usage and per-app limits will not work", details)
+            after == TrafficStats.UNSUPPORTED.toLong() || after <= before -> warn("Per-app traffic is not counted (no eBPF accounting?)", details)
+            else -> pass("Traffic is counted per app (${after - before} bytes for one request)", details)
+        }
+    },
+
+    Check("sd.readwrite", "SD card write and read") {
+        if (!profile.stockHasSdSlot) return@Check notApplicable("Stock has no SD slot")
+        val dir = context.getExternalFilesDirs(null).drop(1).firstOrNull {
+            it != null && Environment.isExternalStorageRemovable(it) && Environment.getExternalStorageState(it) == Environment.MEDIA_MOUNTED
+        } ?: return@Check warn("No SD card mounted. Insert one and run again.")
+        withContext(Dispatchers.IO) { sdRoundTrip(dir) }
+    },
+
+    Check("charging.usb", "USB charging current") {
+        val battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val plugged = battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        val read = read(
+            "for f in type real_type usb_type current_max input_current_max voltage_max; do v=\$(cat /sys/class/power_supply/usb/\$f 2>/dev/null) && echo \"\$f=\$v\"; done; true"
+        ) { it.contains("=") }
+        val values = read.output?.lines()?.mapNotNull { line -> line.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }?.toMap().orEmpty()
+        val currentNow = context.getSystemService(BatteryManager::class.java).getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
+        val details = values.entries.joinToString("\n") { "${it.key}=${it.value}" } + "\nbattery current_now=$currentNow µA\nplugged=$plugged"
+        if (plugged != BatteryManager.BATTERY_PLUGGED_USB && plugged != BatteryManager.BATTERY_PLUGGED_AC) {
+            return@Check warn("Not charging. Plug into a computer USB port and run again.", details, read.access)
+        }
+        if (values.isEmpty()) return@Check needsShell()
+        val type = (values["real_type"] ?: values["usb_type"] ?: values["type"]).orEmpty()
+        val limit = (values["input_current_max"] ?: values["current_max"])?.toIntOrNull()?.let(::toMicroAmps)
+        val isSdp = type.equals("USB", ignoreCase = true) || type.contains("SDP", ignoreCase = true)
+        when {
+            isSdp && limit != null && limit > SDP_USB3_MAX_UA -> fail("Standard USB port but input limit is ${limit / 1000} mA", details, read.access)
+            isSdp && limit != null && limit > SDP_MAX_UA -> warn("Standard USB port with ${limit / 1000} mA limit (only valid on USB 3)", details, read.access)
+            else -> info("Charger type $type, limit ${limit?.div(1000) ?: "?"} mA. Compare with stock.", details, read.access)
+        }
+    },
+
+    Check("bluetooth.codecs", "Bluetooth audio codecs") {
+        if (!profile.stockHasBluetooth) return@Check notApplicable("Stock has no Bluetooth")
+        val read = read("dumpsys bluetooth_manager | grep -iE 'codec|aptx|ldac' | head -40") { it.isNotBlank() }
+        val output = read.output ?: return@Check needsShell("Needs Shizuku, and a connected Bluetooth headset for the active codec.")
+        val aptx = output.lines().filter { it.contains("aptx", ignoreCase = true) }.distinct()
+        info(
+            if (aptx.isEmpty()) "No aptX codec mentioned. Compare with stock." else "aptX entries found. Compare with stock.",
+            output,
+            read.access,
+        )
+    },
+)
+
+/** Some kernels report mA, others µA: anything under 20 A in mA is converted. */
+private fun toMicroAmps(value: Int): Int = if (value in 1 until 20_000) value * 1000 else value
+
+private suspend fun CheckContext.probeInternet(transport: Int): CheckResult? {
+    val connectivity = context.getSystemService(ConnectivityManager::class.java)
+    val request = NetworkRequest.Builder()
+        .addTransportType(transport)
+        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        .build()
+    var callback: ConnectivityManager.NetworkCallback? = null
+    val network = suspendCancellableCoroutine<Network?> { cont ->
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                if (cont.isActive) cont.resume(network)
+            }
+
+            override fun onUnavailable() {
+                if (cont.isActive) cont.resume(null)
+            }
+        }
+        callback = networkCallback
+        connectivity.requestNetwork(request, networkCallback, NETWORK_TIMEOUT_MS)
+        cont.invokeOnCancellation { runCatching { connectivity.unregisterNetworkCallback(networkCallback) } }
+    }
+    try {
+        network ?: return null
+        val started = System.currentTimeMillis()
+        val code = withContext(Dispatchers.IO) {
+            val connection = network.openConnection(URL(CONNECTIVITY_URL)) as HttpURLConnection
+            try {
+                connection.connectTimeout = NETWORK_TIMEOUT_MS
+                connection.readTimeout = NETWORK_TIMEOUT_MS
+                connection.responseCode
+            } finally {
+                connection.disconnect()
+            }
+        }
+        val link = connectivity.getLinkProperties(network)
+        val caps = connectivity.getNetworkCapabilities(network)
+        val hasDefaultRoute = link?.routes?.any { it.isDefaultRoute } == true
+        val validated = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+        val details = "GET $CONNECTIVITY_URL -> $code in ${System.currentTimeMillis() - started} ms\n" +
+            "Interface ${link?.interfaceName}, addresses ${link?.linkAddresses?.joinToString()}\n" +
+            "Default route: $hasDefaultRoute, validated: $validated\nDNS ${link?.dnsServers?.joinToString()}"
+        return when {
+            !hasDefaultRoute -> fail("Address but no default route (netlink address flags?)", details)
+            code != HttpURLConnection.HTTP_NO_CONTENT -> warn("Unexpected HTTP $code (captive portal?)", details)
+            !validated -> warn("Internet reachable but the network is not validated", details)
+            else -> pass("Internet reachable, validated, default route present", details)
+        }
+    } catch (e: Exception) {
+        val link = connectivity.getLinkProperties(network ?: return null)
+        return fail(
+            "Network up but request failed: ${e.message}",
+            "Addresses ${link?.linkAddresses?.joinToString()}\nDefault route: ${link?.routes?.any { it.isDefaultRoute }}",
+        )
+    } finally {
+        callback?.let { runCatching { connectivity.unregisterNetworkCallback(it) } }
+    }
+}
+
+private fun sdRoundTrip(dir: File): CheckResult {
+    val file = File(dir, "device_checker_probe.bin")
+    val data = Random.nextBytes(SD_TEST_BYTES)
+    val expected = MessageDigest.getInstance("SHA-256").digest(data)
+    return try {
+        val writeStart = System.nanoTime()
+        file.outputStream().use { out ->
+            out.write(data)
+            out.fd.sync()
+        }
+        val writeMs = (System.nanoTime() - writeStart) / 1_000_000.0
+        val readStart = System.nanoTime()
+        val actual = MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+        val readMs = (System.nanoTime() - readStart) / 1_000_000.0
+        val mount = runCatching {
+            File("/proc/self/mounts").readLines()
+                .filter { line -> line.split(" ").getOrNull(1)?.let { it.startsWith("/storage/") && dir.absolutePath.startsWith(it) } == true }
+                .maxByOrNull { it.split(" ")[1].length }
+        }.getOrNull()
+        val mb = SD_TEST_BYTES / 1024.0 / 1024.0
+        val details = "Path ${dir.absolutePath}\nWrite ${"%.1f".format(mb / (writeMs / 1000))} MB/s, read ${"%.1f".format(mb / (readMs / 1000))} MB/s (read may be cached)\n${mount.orEmpty()}"
+        if (actual.contentEquals(expected)) pass("${mb.toInt()} MB written and read back intact", details) else fail("Data read back differs", details)
+    } catch (e: Exception) {
+        fail("SD I/O failed: ${e.message}")
+    } finally {
+        file.delete()
+    }
+}

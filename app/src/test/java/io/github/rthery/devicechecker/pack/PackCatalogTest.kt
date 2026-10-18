@@ -1,0 +1,60 @@
+package io.github.rthery.devicechecker.pack
+
+import io.github.rthery.devicechecker.catalog.RequirementCatalog
+import io.github.rthery.devicechecker.checks.CheckResult
+import io.github.rthery.devicechecker.checks.CheckStatus
+import io.github.rthery.devicechecker.data.Category
+import io.github.rthery.devicechecker.data.TestCatalog
+import io.github.rthery.devicechecker.data.TestKind
+import io.github.rthery.devicechecker.data.TestState
+import io.github.rthery.devicechecker.data.stateOf
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+class PackCatalogTest {
+
+    private val eos: DevicePack = run {
+        val dir = listOf(File("../docs/packs"), File("docs/packs")).first { it.isDirectory }
+        (PackParser.parse(File(dir, "eos-bullhead.json").readText(), RequirementCatalog.all) as PackParseResult.Valid).pack
+    }
+    private val catalog = TestCatalog(listOf(eos))
+
+    @Test
+    fun packTestsJoinTheUnifiedList() {
+        val hardware = catalog.byId.getValue("pack.eos-bullhead.hardware")
+        assertEquals(TestKind.AUTO, hardware.kind)
+        assertEquals(Category.SECURITY, hardware.category)
+        assertEquals(eos.name, hardware.source)
+        val led = catalog.byId.getValue("pack.eos-bullhead.led")
+        assertEquals(TestKind.MANUAL, led.kind)
+        assertEquals(eos.name, led.source)
+        assertTrue("pack.eos-bullhead.hardware" in catalog.checksById)
+        assertTrue("pack.eos-bullhead.led" in catalog.interactiveById)
+        assertEquals(TestCatalog.builtIn.all.size + eos.tests.size - 1, catalog.all.size)
+        assertNull(TestCatalog.builtIn.byId["pack.eos-bullhead.led"])
+    }
+
+    @Test
+    fun replacedRequirementAndItsOwnChecksDisappear() {
+        assertNull(catalog.requirementsById["sw.browser"])
+        assertNull(catalog.byId["browser.jelly"])
+        assertNull(catalog.checksById["browser.jelly"])
+        assertEquals("sw.browser", catalog.replacedBy("pack.eos-bullhead.browser")?.id)
+        assertEquals(listOf("pack.eos-bullhead.browser"), catalog.byId.getValue("pack.eos-bullhead.browser").requirements.map { it.id })
+        assertTrue("browser.jelly" in TestCatalog.builtIn.checksById)
+    }
+
+    @Test
+    fun waiversReachTheTestState() {
+        val trafficStats = catalog.byId.getValue("network.trafficstats")
+        val waiver = catalog.waiverFor(trafficStats)
+        assertEquals("hw.wifi.works", waiver?.requirement)
+        val results = mapOf("network.trafficstats" to CheckResult(CheckStatus.FAIL, "unsupported"))
+        assertEquals(TestState.WAIVED, stateOf(trafficStats, results, emptyMap(), lineageBased = true, run = null, waiver = waiver))
+        assertNull(catalog.waiverFor(catalog.byId.getValue("network.wifi")))
+        assertEquals(eos.theme, catalog.theme)
+    }
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "lineage-bullhead",
+  "name": "LineageOS for Nexus 5X",
+  "rom": "LineageOS",
+  "romVersion": "23 (unofficial)",
+  "devices": [
+    "bullhead"
+  ],
+  "match": [
+    {
+      "prop": "ro.lineage.version",
+      "matches": "^2[0-9]\\."
+    },
+    {
+      "prop": "ro.elegal.url",
+      "equals": ""
+    }
+  ],
+  "profile": {
+    "isPhone": true,
+    "stockHasNfc": true,
+    "stockHasFingerprint": true,
+    "stockHasSdSlot": false,
+    "stockRearCameraCount": 1,
+    "stockFrontCameraCount": 1,
+    "stockHasHdr10": false,
+    "stockHasExfat": false,
+    "stockHasForcedEncryption": true,
+    "stockHasHardwareEncryption": true,
+    "stockWidthPx": 1080,
+    "stockHeightPx": 1920,
+    "stockDensityDpi": 420
+  },
+  "tests": [
+    {
+      "type": "prop",
+      "id": "hardware",
+      "title": "Bullhead hardware platform",
+      "category": "DEVICE_TREE",
+      "level": "MUST",
+      "prop": "ro.boot.hardware",
+      "equals": "bullhead"
+    },
+    {
+      "type": "prop",
+      "id": "lineage.device",
+      "title": "LineageOS device name is bullhead",
+      "category": "DEVICE_TREE",
+      "level": "MUST",
+      "prop": "ro.lineage.device",
+      "equals": "bullhead"
+    },
+    {
+      "type": "file",
+      "id": "battery",
+      "title": "Battery driver reports a Li-ion cell",
+      "category": "ACCESSORIES",
+      "level": "SHOULD",
+      "path": "/sys/class/power_supply/battery/technology",
+      "contains": "Li-ion"
+    },
+    {
+      "type": "shell",
+      "id": "lineage.apps",
+      "title": "LineageOS Updater and Settings parts are installed",
+      "category": "UPDATES",
+      "level": "MUST",
+      "command": "cmd package list packages org.lineageos | grep -cE 'org\\.lineageos\\.(updater|lineageparts)$'",
+      "expect": "^2$"
+    },
+    {
+      "type": "settings",
+      "id": "updater",
+      "title": "Updater opens and lists builds",
+      "category": "UPDATES",
+      "level": "MUST",
+      "intent": {
+        "label": "Open Updater",
+        "packageName": "org.lineageos.updater",
+        "className": "org.lineageos.updater.UpdatesActivity"
+      },
+      "question": "The Updater opens and shows the current build and any newer ones."
+    }
+  ],
+  "waivers": [
+    {
+      "requirement": "hw.wifi.works",
+      "checks": [
+        "network.trafficstats"
+      ],
+      "reason": "Kernel 3.10 has no eBPF, which Android 13 and later traffic accounting needs."
+    }
+  ],
+  "theme": {
+    "accentSeed": "#167C80",
+    "cornerScale": 1.0,
+    "fontFamily": "sans-serif",
+    "icon": "lineage"
+  }
+}

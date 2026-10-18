@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "eos-bullhead",
+  "name": "/e/OS 3 for Nexus 5X",
+  "rom": "/e/OS",
+  "romVersion": "3.x (Android 13)",
+  "devices": [
+    "bullhead"
+  ],
+  "match": [
+    {
+      "prop": "ro.elegal.url",
+      "matches": "e\\.foundation"
+    },
+    {
+      "prop": "ro.lineage.version",
+      "matches": "^3\\."
+    }
+  ],
+  "profile": {
+    "isPhone": true,
+    "stockHasNfc": true,
+    "stockHasFingerprint": true,
+    "stockHasSdSlot": false,
+    "stockRearCameraCount": 1,
+    "stockFrontCameraCount": 1,
+    "stockHasHdr10": false,
+    "stockHasExfat": false,
+    "stockHasForcedEncryption": true,
+    "stockHasHardwareEncryption": true,
+    "stockWidthPx": 1080,
+    "stockHeightPx": 1920,
+    "stockDensityDpi": 420
+  },
+  "tests": [
+    {
+      "type": "prop",
+      "id": "hardware",
+      "title": "Bullhead hardware platform",
+      "category": "DEVICE_TREE",
+      "level": "MUST",
+      "prop": "ro.boot.hardware",
+      "equals": "bullhead"
+    },
+    {
+      "type": "shell",
+      "id": "apps.e",
+      "title": "/e/OS core apps are installed",
+      "category": "FEATURES",
+      "level": "MUST",
+      "description": "App Lounge and Advanced Privacy ship with every /e/OS build.",
+      "command": "cmd package list packages foundation.e | grep -cE 'foundation\\.e\\.(apps|advancedprivacy)$'",
+      "expect": "^2$"
+    },
+    {
+      "type": "shell",
+      "id": "browser",
+      "title": "/e/OS Browser ships",
+      "category": "FEATURES",
+      "level": "MUST",
+      "description": "/e/OS ships its own browser instead of Jelly.",
+      "replaces": "sw.browser",
+      "command": "cmd package list packages foundation.e.browser",
+      "expect": "package:foundation\\.e\\.browser"
+    },
+    {
+      "type": "shell",
+      "id": "microg",
+      "title": "microG services are installed",
+      "category": "FEATURES",
+      "level": "SHOULD",
+      "command": "cmd package list packages com.google.android.gms",
+      "expect": "package:com\\.google\\.android\\.gms"
+    },
+    {
+      "type": "settings",
+      "id": "privacy",
+      "title": "Advanced Privacy opens",
+      "category": "FEATURES",
+      "level": "SHOULD",
+      "intent": {
+        "label": "Privacy settings",
+        "action": "android.settings.PRIVACY_SETTINGS"
+      },
+      "question": "Advanced Privacy is reachable from the privacy settings and its dashboard opens."
+    },
+    {
+      "type": "guided",
+      "id": "led",
+      "title": "Notification LED",
+      "category": "FEATURES",
+      "level": "SHOULD",
+      "intro": "Lock the screen and send yourself a message from another device.",
+      "steps": [
+        {
+          "text": "The LED blinks for the new notification.",
+          "command": "cat /sys/class/leds/red/brightness /sys/class/leds/green/brightness /sys/class/leds/blue/brightness"
+        },
+        {
+          "text": "The LED charging color shows while plugged in.",
+          "shortcut": {
+            "label": "Notification settings",
+            "action": "android.settings.NOTIFICATION_SETTINGS"
+          }
+        }
+      ]
+    }
+  ],
+  "waivers": [
+    {
+      "requirement": "hw.wifi.works",
+      "checks": [
+        "network.trafficstats"
+      ],
+      "reason": "Kernel 3.10 has no eBPF, which Android 13 traffic accounting needs. Data usage counters cannot work on this kernel."
+    }
+  ],
+  "theme": {
+    "accentSeed": "#0086FF",
+    "cornerScale": 1.5,
+    "fontFamily": "sans-serif",
+    "icon": "eos"
+  }
+}

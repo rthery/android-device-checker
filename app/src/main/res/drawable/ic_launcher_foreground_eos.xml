@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="1.25" android:scaleY="1.25">
+        <path android:pathData="M54,83m-19,0a19,3.5 0,1 0,38 0a19,3.5 0,1 0,-38 0"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="54" android:centerY="83" android:gradientRadius="19"><item android:offset="0" android:color="#40000000" /><item android:offset="1" android:color="#00000000" /></gradient></aapt:attr></path>
+        <path android:pathData="M46,28H62A7,7 0,0 1,69 35V73A7,7 0,0 1,62 80H46A7,7 0,0 1,39 73V35A7,7 0,0 1,46 28Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="54" android:startY="28" android:endX="54" android:endY="80" android:startColor="#52BBFF" android:endColor="#0A5FE8" /></aapt:attr></path>
+        <path android:pathData="M46,33H62A4,4 0,0 1,66 37V69A4,4 0,0 1,62 73H46A4,4 0,0 1,42 69V37A4,4 0,0 1,46 33Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="54" android:startY="33" android:endX="54" android:endY="73" android:startColor="#FFFFFF" android:endColor="#E6EDF7" /></aapt:attr></path>
+        <path android:pathData="M51,30.5H57" android:strokeColor="#0A3D91" android:strokeAlpha="0.6" android:strokeWidth="1.6" android:strokeLineCap="round" />
+        <group android:translateY="1.2"><path android:pathData="M46.5,54L51.5,59L61.5,46.5" android:strokeColor="#0A3D91" android:strokeAlpha="0.18" android:strokeWidth="6.5" android:strokeLineCap="round" android:strokeLineJoin="round" /></group>
+        <path android:pathData="M46.5,54L51.5,59L61.5,46.5" android:strokeWidth="6.5" android:strokeLineCap="round" android:strokeLineJoin="round"><aapt:attr name="android:strokeColor"><gradient android:type="linear" android:startX="54" android:startY="46" android:endX="54" android:endY="60" android:startColor="#52BBFF" android:endColor="#0A5FE8" /></aapt:attr></path>
+    </group>
+</vector>
