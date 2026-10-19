@@ -388,7 +388,7 @@ private fun readClip(retriever: MediaMetadataRetriever, label: String, file: Fil
 }
 
 @Composable
-private fun ClipPlayer(file: File, onDone: () -> Unit) {
+internal fun ClipPlayer(file: File, onDone: () -> Unit) {
     AndroidView(
         factory = { context ->
             VideoView(context).apply {

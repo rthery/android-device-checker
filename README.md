@@ -29,6 +29,7 @@ Interactive test screens keep the display awake until you leave the test, so the
 The stress tests target bugs that only show up with fast or repeated use:
 
 - Camera switching: random camera, then a photo, a 0.5 to 3 s video, a close mid-recording, autofocus churn, or a photo, video and photo switch on one open camera, with 0.1 to 0.8 s gaps. It checks first frame latency, that every clip has audio missing from at most 300 ms of its video, and a stable camera list, then reopens every camera.
+- Camera HAL and API coverage: reads the camera-service HAL inventory through Shizuku, then takes photos and records video with sound through Camera2 and legacy Camera1 on every accessible camera. Saved media requires a tester verdict. API coverage does not force alternate HAL versions; unavailable inventory or additional vendor HAL paths need separate review. Run it with `--es run hw.camera.hal`.
 - Audio churn: random speaker and earpiece beeps, recordings and start/stop bursts. A first mic buffer slower than 500 ms fails (audio HAL blocking on a missing service).
 
 ## Stock profile

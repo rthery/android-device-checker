@@ -49,6 +49,9 @@ fun foregroundCommand(ids: String) = "adb shell am start -n io.github.rthery.dev
 val headlessTests = listOf(
     Check("camera.capture", "Photo on every camera") { photoHeadless() },
     Check("video.record", "Video recording") { videoHeadless() },
+    Check("hw.camera.hal", "Camera HAL and API coverage") {
+        preflight("hw.camera.hal", listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) ?: runCameraHalCoverage()
+    },
     Check("camera.stress", "Camera switching stress") { cameraStressHeadless() },
     Check("audio.stress", "Audio churn stress") { audioStressHeadless() },
     Check("audio.input", "Microphones") { micsHeadless() },

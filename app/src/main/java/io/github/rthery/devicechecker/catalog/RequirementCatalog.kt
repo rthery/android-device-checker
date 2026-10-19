@@ -65,7 +65,7 @@ object RequirementCatalog {
 
         Requirement("hw.camera.frontrear", Section.CAMERA, MUST, "Front and rear cameras work if stock has them.", INTERACTIVE, listOf("camera.list"), listOf("camera.capture")),
         Requirement("hw.camera.all", Section.CAMERA, SHOULD, "On multi-camera devices, every front and rear camera works.", INTERACTIVE, listOf("camera.list"), listOf("camera.capture", "camera.stress")),
-        Requirement("hw.camera.hal", Section.CAMERA, MUST, "Every accessible Camera HAL version meets the camera and video requirements.", MANUAL),
+        Requirement("hw.camera.hal", Section.CAMERA, MUST, "Every accessible Camera HAL version meets the camera and video requirements.", INTERACTIVE, testIds = listOf("hw.camera.hal")),
         Requirement("hw.video", Section.CAMERA, MUST, "Video recording works on front and rear cameras if stock has it.", INTERACTIVE, testIds = listOf("video.record", "camera.stress")),
 
         Requirement("hw.codecs", Section.CODECS, MUST, "Hardware encode and decode work for every non-proprietary codec stock supports.", ASSISTED, listOf("codecs.hardware", "codecs.roundtrip")),
