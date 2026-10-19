@@ -51,6 +51,8 @@ fun DeviceTab(viewModel: MainViewModel, onEditProfile: () -> Unit, onPacks: () -
 
         ShizukuCard(shizuku, onRequest = viewModel::requestShizuku, onRefresh = viewModel::refreshShizuku)
 
+        StockBaselineCard(viewModel)
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Stock profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             OutlinedButton(onClick = onEditProfile) { Text("Edit") }

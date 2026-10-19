@@ -107,7 +107,7 @@ val hardwareChecks = listOf(
         else info("GNSS declared. A real fix test is still needed.", details)
     },
 
-    Check("nfc.present", "NFC") {
+    Check("nfc.present", "NFC adapter") {
         if (!profile.stockHasNfc) return@Check notApplicable("Stock has no NFC")
         val adapter = NfcAdapter.getDefaultAdapter(context) ?: return@Check fail("No NFC adapter")
         info("NFC adapter present (${if (adapter.isEnabled) "enabled" else "disabled"}). Read a tag to confirm.")

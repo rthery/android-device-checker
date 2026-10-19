@@ -49,6 +49,7 @@ fun TestRunScreen(viewModel: MainViewModel, testId: String, onDone: () -> Unit) 
     val scope = remember(testId, profile) {
         TestScope(activity, profile, ShizukuShell.takeIf { it.isReady }) { result ->
             viewModel.saveTestResult(testId, result)
+            android.widget.Toast.makeText(activity, "Result saved: ${result.summary}", android.widget.Toast.LENGTH_LONG).show()
             onDone()
         }
     }

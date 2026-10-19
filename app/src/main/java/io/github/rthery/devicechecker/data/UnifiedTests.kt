@@ -146,7 +146,9 @@ class TestCatalog(val packs: List<DevicePack> = emptyList()) {
     private fun build(): List<UnifiedTest> {
         fun categoryOf(covered: List<Requirement>) = covered.firstOrNull()?.section?.category() ?: Category.SYSTEM
 
-        val checkTests = checks.map { check ->
+        // NFC's guided test already checks the adapter before enabling tag reading.
+        // Keep the old probe available to adb and reports, without a duplicate UI entry.
+        val checkTests = checks.filterNot { it.id == "nfc.present" && "nfc.tag" in interactiveById }.map { check ->
             val covered = requirements.filter { check.id in it.checkIds }
             val how = CHECK_HOW[check.id] ?: content.how[check.id].orEmpty()
             UnifiedTest(check.id, check.title, TestKind.AUTO, categoryOf(covered), covered, how, covered.firstNotNullOfOrNull { it.source })

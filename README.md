@@ -12,7 +12,7 @@ Each requirement has a test mode:
 - Manual: a guided step list with buttons that open the right settings screen or run the action through Shizuku (USB mode, tethering state, reboot to recovery).
 - Not on device: source tree, wiki and maintainer items, listed so the checklist is complete.
 
-The app shows all of these as one list of tests, grouped by category, each with its requirement level (MUST, SHOULD) and one action button. A test's details show the requirement it covers, what the app does, and the raw output of the last run. A test runs once and its result counts for every requirement it covers. A tester can mark any test passed, failed or not applicable.
+The app groups related checks and actions into entries such as Wi-Fi, Cameras and Microphones. Open an entry to run its automatic checks or start an individual guided test. Categories remember whether they are collapsed, including after restarting the app, and their headers show counts for every result state. Individual tests retain their requirement level (MUST, SHOULD), result and action button. The priority filter selects required (MUST / MUST NOT), recommended (SHOULD / SHOULD NOT) or optional (MAY) tests and also limits the bulk automatic run. Tests covering several requirements use their strongest level. A test's details show the requirement it covers, what the app does, and the raw output of the last run. A test runs once and its result counts for every requirement it covers. A tester can mark any test passed, failed or not applicable.
 
 Anything a machine cannot judge (how a recording sounds, whether a photo or clip looks right, where the fingerprint prompt says the sensor is) needs a tester answer before the test can be saved.
 
@@ -31,7 +31,7 @@ The stress tests target bugs that only show up with fast or repeated use:
 
 ## Stock profile
 
-Many checks compare the build with stock: MAC addresses, resolution, cameras, sensors, codecs, CPU frequencies. Fill it in Device > Stock profile, import a pack, or capture it on the stock ROM itself (see adb control below).
+Many checks compare the build with stock: MAC addresses, resolution, cameras, sensors, codecs, CPU frequencies. In Device > Stock baseline, use **Capture this ROM** while running the original stock ROM and keep the JSON file off the phone before changing ROMs. On the ROM being tested, choose **Import stock file**. The app validates the device, loads the baseline and profile, and reruns its stock-based comparisons while preserving tester verdicts. Listening, photos, tag scans and other interactive tests still need their own results. Device > Stock profile and device packs can also supply basic stock values; they do not include the full captured measurements.
 
 ## Shizuku
 
@@ -173,6 +173,8 @@ Needs JDK 17 or later and the Android SDK (platform 36), with `sdk.dir` in `loca
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+For scrolling and responsiveness checks on hardware, use `./gradlew assemblePerformance` and install `app/build/outputs/apk/performance/app-performance.apk`. This build uses release runtime behavior and the local debug signing key, so it can update a local debug install without deleting its data. Use debug builds when you need a debugger.
 
 `./gradlew assembleRelease` builds an unsigned APK unless `SIGNING_KEYSTORE_PATH`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD` are set. Pushing a `vMAJOR.MINOR.PATCH` tag builds the signed APK in GitHub Actions and publishes it as a release. The tag must match `versionName` in `app/build.gradle.kts`, and `versionCode` must be `MAJOR * 10000 + MINOR * 100 + PATCH`. Store listing texts and screenshots for F-Droid and IzzyOnDroid live in `fastlane/metadata/android/`, with one `changelogs/<versionCode>.txt` per release.
 

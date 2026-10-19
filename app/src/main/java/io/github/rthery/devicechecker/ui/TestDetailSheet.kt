@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -26,6 +27,11 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -54,10 +60,25 @@ fun TestDetailSheet(
     result: CheckResult?,
     runActive: Boolean,
     onDismiss: () -> Unit,
-    onOpenTest: () -> Unit,
+    onOpenTest: (String) -> Unit,
 ) {
     val catalog = viewModel.catalog.collectAsStateWithLifecycle().value
     val waiver = catalog.waiverFor(test)
+    val initialTimestamp = remember(test.id) { result?.timestamp }
+    var requested by remember(test.id) { mutableStateOf(false) }
+    var runTimestamp by remember(test.id) { mutableStateOf(result?.timestamp) }
+    var showingProgress by remember(test.id) { mutableStateOf(false) }
+    val completed = result != null && result.timestamp != initialTimestamp
+    LaunchedEffect(requested, state, result?.timestamp) {
+        if (requested || state == TestState.RUNNING || state == TestState.QUEUED) {
+            showingProgress = true
+            if (state != TestState.RUNNING && state != TestState.QUEUED && result != null && result.timestamp != runTimestamp) {
+                delay(600)
+                showingProgress = false
+                requested = false
+            }
+        }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             Modifier
@@ -111,8 +132,15 @@ fun TestDetailSheet(
                 }
             }
 
-            if (result != null) {
-                Section("Last result · ${WHEN_FORMAT.format(Instant.ofEpochMilli(result.timestamp))}") {
+            if (showingProgress || state == TestState.RUNNING || state == TestState.QUEUED) {
+                Section("Running ${test.title}") {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Text(test.how.firstOrNull() ?: "Checking the device. Please wait.")
+                }
+            }
+
+            if (result != null && !showingProgress) {
+                Section("${if (completed) "Done" else "Last result"} · ${WHEN_FORMAT.format(Instant.ofEpochMilli(result.timestamp))}") {
                     Text(result.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                     if (result.details.isNotBlank()) {
                         Text(
@@ -132,26 +160,40 @@ fun TestDetailSheet(
                 }
             }
 
+            if (state == TestState.NEEDS && !showingProgress && test.kind == TestKind.AUTO) {
+                val related = test.requirements.flatMap { it.testIds }.distinct().filter { it != test.id }.mapNotNull { catalog.interactiveById[it] }
+                Section("Next step") {
+                    if (related.isEmpty()) {
+                        Text("Compare the result with stock, then record your verdict below.")
+                    } else {
+                        related.forEach { next ->
+                            Text(if (next.id == "nfc.tag") "Hold a tag or card against the back of the phone." else next.summary)
+                            TestActionButton(label = handsOnLabel(next.id, next.manual), handsOn = true,
+                                onClick = { onOpenTest(next.id) }, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
-                    test.kind == TestKind.AUTO -> Button(
+                    test.kind == TestKind.AUTO -> TestActionButton(
+                        label = if (showingProgress) "Running…" else if (result == null) "Run check" else "Run again",
+                        handsOn = false,
                         onClick = {
+                            runTimestamp = result?.timestamp
+                            requested = true
+                            showingProgress = true
                             viewModel.runOne(test.id)
-                            onDismiss()
                         },
-                        enabled = !runActive,
+                        enabled = !runActive && !showingProgress,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    ) { Text(if (result == null) "Run" else "Run again") }
-                    !test.isRequirementOnly -> Button(onClick = onOpenTest, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                        Text(
-                            when {
-                                test.kind == TestKind.MANUAL -> "Open steps"
-                                state == TestState.NOT_RUN -> "Start test"
-                                state == TestState.NEEDS -> "Continue test"
-                                else -> "Run again"
-                            }
-                        )
-                    }
+                    )
+                    !test.isRequirementOnly -> TestActionButton(
+                        label = handsOnLabel(test.id, test.kind == TestKind.MANUAL),
+                        handsOn = true, onClick = { onOpenTest(test.id) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(Verdict.PASS to "Mark passed", Verdict.FAIL to "Mark failed", Verdict.NOT_APPLICABLE to "Not applicable").forEach { (verdict, label) ->

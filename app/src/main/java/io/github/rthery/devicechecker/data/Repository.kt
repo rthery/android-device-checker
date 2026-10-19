@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -61,6 +62,24 @@ class Repository private constructor(context: Context) {
 
     private val _verdicts = MutableStateFlow(store.loadVerdicts())
     val verdicts: StateFlow<Map<String, ManualVerdict>> = _verdicts.asStateFlow()
+
+    private val _collapsedCategories = MutableStateFlow(store.loadCollapsedCategories())
+    val collapsedCategories: StateFlow<Set<String>> = _collapsedCategories.asStateFlow()
+
+    private val _requirementPriority = MutableStateFlow(store.loadRequirementPriority())
+    val requirementPriority: StateFlow<RequirementPriority> = _requirementPriority.asStateFlow()
+
+    fun setRequirementPriority(priority: RequirementPriority) {
+        _requirementPriority.value = priority
+        store.saveRequirementPriority(priority)
+    }
+
+    fun toggleCategory(category: Category) {
+        val current = _collapsedCategories.value
+        val updated = if (category.name in current) current - category.name else current + category.name
+        _collapsedCategories.value = updated
+        store.saveCollapsedCategories(updated)
+    }
 
     private val _progress = MutableStateFlow<RunProgress?>(null)
     val progress: StateFlow<RunProgress?> = _progress.asStateFlow()
@@ -158,9 +177,14 @@ class Repository private constructor(context: Context) {
                 _progress.value = RunProgress(index, checks.size, check.title, check.id, pending)
                 writeStatus("running", "${index + 1}/${checks.size} ${check.id}")
                 val startedAt = context.crashWatcher.mark()
+                val startedElapsed = android.os.SystemClock.elapsedRealtime()
                 val result = runCatchingCheck { check.run(context) }
                     .withCrashes(context.crashWatcher.crashesSince(startedAt))
                     .copy(timestamp = System.currentTimeMillis())
+                // Keep a single quick check visible long enough to show its progress.
+                if (checks.size == 1) {
+                    delay((600 - (android.os.SystemClock.elapsedRealtime() - startedElapsed)).coerceAtLeast(0))
+                }
                 Log.i(TAG, "${check.id}: ${result.status} ${result.summary}")
                 _results.update { it + (check.id to result) }
                 ran++
@@ -189,14 +213,17 @@ class Repository private constructor(context: Context) {
             .also { Log.i(TAG, "Stock capture written to ${it.absolutePath}") }
     }
 
-    /** Loads a stock capture: it replaces the stock profile and enables comparisons. Returns an error or null. */
+    /** Loads a stock capture, replaces the profile and refreshes comparisons. Returns an error or null. */
     suspend fun importStock(text: String): String? = withContext(Dispatchers.IO) {
-        val snapshot = runCatching { stockJson.decodeFromString(StockSnapshot.serializer(), text) }.getOrElse { return@withContext "Not a stock capture: ${it.message}" }
-        if (snapshot.codename != android.os.Build.DEVICE) Log.w(TAG, "Stock capture is for ${snapshot.codename}, this device is ${android.os.Build.DEVICE}")
-        _stock.value = snapshot
-        store.saveStock(snapshot)
-        withContext(Dispatchers.Main) { saveProfile(snapshot.profile) }
+        val snapshot = runCatching { decodeStockCapture(text, android.os.Build.DEVICE) }.getOrElse { return@withContext "Cannot import stock capture: ${it.message}" }
+        runMutex.withLock {
+            _stock.value = snapshot
+            store.saveStock(snapshot)
+            withContext(Dispatchers.Main) { saveProfile(snapshot.profile) }
+        }
         Log.i(TAG, "Stock capture imported: ${snapshot.device}, Android ${snapshot.android}")
+        val refresh = stockRefreshIds(_catalog.value, _results.value)
+        if (refresh.isNotEmpty()) runChecks(refresh)
         null
     }
 
@@ -250,7 +277,14 @@ class Repository private constructor(context: Context) {
     }
 
     fun saveTestResult(testId: String, result: CheckResult) {
-        _results.update { (it + (testId to result)).also(store::saveCheckResults) }
+        _results.update {
+            val updated = it + (testId to result)
+            // A real tag read also proves the adapter works, superseding a stale probe failure.
+            val confirmed = if (testId == "nfc.tag" && result.status == CheckStatus.PASS && !result.byTester) {
+                updated + ("nfc.present" to result.copy(summary = "NFC adapter working: tag read"))
+            } else updated
+            confirmed.also(store::saveCheckResults)
+        }
         Log.i(TAG, "$testId: ${result.status} ${result.summary}")
         scope.launch { exportReports(snapshot = true) }
     }

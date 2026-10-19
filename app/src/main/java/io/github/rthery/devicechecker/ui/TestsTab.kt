@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,10 +21,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -45,6 +49,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
+import io.github.rthery.devicechecker.data.bundleTests
+import io.github.rthery.devicechecker.data.testSummary
+import io.github.rthery.devicechecker.data.RequirementPriority
 import io.github.rthery.devicechecker.data.Category
 import io.github.rthery.devicechecker.data.TestKind
 import io.github.rthery.devicechecker.data.TestState
@@ -73,15 +80,32 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
     val shizuku by viewModel.shizukuState.collectAsStateWithLifecycle()
     val catalog = viewModel.catalog.collectAsStateWithLifecycle().value
     var filter by rememberSaveable { mutableStateOf(TestFilter.ALL) }
-    var closed by remember { mutableStateOf(setOf(Category.OFF_DEVICE)) }
+    val closed by viewModel.collapsedCategories.collectAsStateWithLifecycle()
+    val priority by viewModel.requirementPriority.collectAsStateWithLifecycle()
+    var selectedBundleId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
 
     val tests = catalog.all
-    val states = tests.associate { it.id to stateOf(it, results, verdicts, deviceInfo.lineageBased, progress, catalog.waiverFor(it)) }
-    val counted = tests.filter { it.kind != TestKind.OFF_DEVICE }
-    val autoCount = tests.count { it.kind == TestKind.AUTO }
-    val idleStates = counted.associate { it.id to stateOf(it, results, verdicts, deviceInfo.lineageBased, null, catalog.waiverFor(it)) }
-    val counts = TestFilter.entries.associateWith { f -> counted.count { f.accepts(it, idleStates.getValue(it.id)) } }
+    val waivers = remember(catalog) { tests.associate { it.id to catalog.waiverFor(it) } }
+    val priorityTests = remember(catalog, priority) { tests.filter(priority::accepts) }
+    val bundles = remember(priorityTests) { bundleTests(priorityTests) }
+    val grouped = remember(bundles) { bundles.groupBy { it.category } }
+    val categoryTests = remember(grouped) { grouped.mapValues { (_, entries) -> entries.flatMap { it.tests } } }
+    val states = remember(catalog, results, verdicts, deviceInfo.lineageBased, progress) {
+        tests.associate { it.id to stateOf(it, results, verdicts, deviceInfo.lineageBased, progress, waivers[it.id]) }
+    }
+    val counted = remember(priorityTests) { priorityTests.filter { it.kind != TestKind.OFF_DEVICE } }
+    val automaticIds = remember(priorityTests) { priorityTests.filter { it.kind == TestKind.AUTO }.map { it.id }.toSet() }
+    val autoCount = automaticIds.size
+    val idleStates = remember(counted, results, verdicts, deviceInfo.lineageBased) {
+        counted.associate { it.id to stateOf(it, results, verdicts, deviceInfo.lineageBased, null, waivers[it.id]) }
+    }
+    val counts = remember(counted, idleStates) {
+        TestFilter.entries.associateWith { f -> counted.count { f.accepts(it, idleStates.getValue(it.id)) } }
+    }
+    val visibleBundles = remember(bundles, filter, states) {
+        grouped.mapValues { (_, entries) -> entries.filter { bundle -> bundle.tests.any { filter.accepts(it, states.getValue(it.id)) } } }
+    }
     val runActive = progress != null
     val fullRun = progress?.let { it.total > 1 } == true
 
@@ -115,6 +139,10 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
             }
         }
 
+        item(key = "priority", contentType = "priority") {
+            PrioritySelector(priority, viewModel::setRequirementPriority)
+        }
+
         item {
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TestFilter.entries.forEach { f ->
@@ -142,8 +170,8 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
                     current != null && fullRun -> RunningCard(current.done + 1, current.total, current.current, onStop = viewModel::stopRun)
                     else -> {
                         Button(
-                            onClick = viewModel::runAllAutomatic,
-                            enabled = !runActive,
+                            onClick = { viewModel.runTests(automaticIds) },
+                            enabled = !runActive && autoCount > 0,
                             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                         ) {
                             Icon(Icons.Filled.PlayArrow, null)
@@ -175,37 +203,59 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
             }
         }
 
+        if (visibleBundles.values.all { it.isEmpty() }) {
+            item(key = "empty") {
+                Text("No tests match these filters.", modifier = Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
         Category.entries.forEach { category ->
-            val all = tests.filter { it.category == category }
-            val visible = all.filter { filter.accepts(it, states.getValue(it.id)) }
+            val all = categoryTests[category].orEmpty()
+            val visible = visibleBundles[category].orEmpty()
             if (visible.isEmpty()) return@forEach
-            val open = category !in closed
-            item(key = "cat-${category.name}") {
-                CategoryHeader(category, all, states, open) {
-                    closed = if (open) closed + category else closed - category
-                }
+            val open = category.name !in closed
+            item(key = "cat-${category.name}", contentType = "category") {
+                CategoryHeader(category, all, states, open) { viewModel.toggleCategory(category) }
             }
             if (open) {
-                itemsIndexed(visible, key = { _, test -> test.id }) { index, test ->
-                    val state = states.getValue(test.id)
-                    TestRow(
-                        test = test,
-                        state = state,
-                        line = lineFor(test, state, results[test.id], catalog.waiverFor(test)),
-                        first = index == 0,
-                        last = index == visible.lastIndex,
-                        runActive = runActive,
-                        onOpen = { selectedId = test.id },
-                        onAction = {
-                            when {
-                                test.kind == TestKind.AUTO -> viewModel.runOne(test.id)
-                                test.isRequirementOnly -> selectedId = test.id
-                                else -> onOpenTest(test.id)
-                            }
-                        },
-                    )
+                itemsIndexed(visible, key = { _, bundle -> bundle.id }, contentType = { _, bundle -> if (bundle.tests.size > 1) "bundle" else "test" }) { index, bundle ->
+                    if (bundle.tests.size > 1) {
+                        BundleRow(bundle, states) { selectedBundleId = bundle.id }
+                    } else {
+                        val test = bundle.tests.single()
+                        val state = states.getValue(test.id)
+                        TestRow(
+                            test = test, state = state,
+                            line = lineFor(test, state, results[test.id], waivers[test.id]),
+                            first = index == 0, last = index == visible.lastIndex,
+                            runActive = runActive, onOpen = { selectedId = test.id },
+                            onAction = {
+                                when {
+                                    test.kind == TestKind.AUTO -> {
+                                        selectedId = test.id
+                                        viewModel.runOne(test.id)
+                                    }
+                                    test.isRequirementOnly -> selectedId = test.id
+                                    else -> onOpenTest(test.id)
+                                }
+                            },
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    if (selectedId == null) {
+        bundles.firstOrNull { it.id == selectedBundleId }?.let { bundle ->
+            TestBundleSheet(
+                bundle = bundle, states = states, results = results, waivers = waivers, runActive = runActive,
+                onDismiss = { selectedBundleId = null },
+                onDetails = { selectedId = it },
+                onRun = { id -> selectedId = id; viewModel.runOne(id) },
+                onOpenTest = { id -> selectedBundleId = null; onOpenTest(id) },
+                onRunChecks = { viewModel.runTests(bundle.tests.filter { it.kind == TestKind.AUTO }.map { it.id }.toSet()) },
+            )
         }
     }
 
@@ -217,11 +267,41 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
             result = results[test.id],
             runActive = runActive,
             onDismiss = { selectedId = null },
-            onOpenTest = {
+            onOpenTest = { id ->
                 selectedId = null
-                onOpenTest(test.id)
+                selectedBundleId = null
+                onOpenTest(id)
             },
         )
+    }
+}
+
+@Composable
+private fun PrioritySelector(priority: RequirementPriority, onSelect: (RequirementPriority) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        OutlinedButton(
+            onClick = { expanded = true }, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+        ) {
+            Text(if (priority == RequirementPriority.ALL) "All priorities" else "${priority.label} · ${priority.levels}", modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Filter by requirement priority")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            RequirementPriority.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(option.label)
+                            if (option.levels.isNotEmpty()) Text(option.levels, style = MaterialTheme.typography.labelSmall)
+                        }
+                    },
+                    trailingIcon = { if (option == priority) Icon(Icons.Filled.Check, contentDescription = "Selected") },
+                    onClick = { expanded = false; onSelect(option) },
+                )
+            }
+        }
     }
 }
 
@@ -245,15 +325,7 @@ private fun RunningCard(position: Int, total: Int, current: String, onStop: () -
 
 @Composable
 private fun CategoryHeader(category: Category, tests: List<UnifiedTest>, states: Map<String, TestState>, open: Boolean, onToggle: () -> Unit) {
-    val failed = tests.count { states[it.id] == TestState.FAIL }
-    val need = tests.count { states.getValue(it.id).needsYou(it.kind) }
-    val passed = tests.count { states[it.id] == TestState.PASS }
-    val summary = if (category == Category.OFF_DEVICE) "${tests.size} items about the source tree and the maintainer"
-    else listOfNotNull(
-        "$failed failed".takeIf { failed > 0 },
-        "$need need you".takeIf { need > 0 },
-        "$passed passed".takeIf { passed > 0 },
-    ).joinToString(" · ").ifEmpty { "${tests.size} tests" }
+    val summary = remember(tests, states) { testSummary(tests, states) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -279,7 +351,7 @@ private fun UnifiedTest.actionLabel(state: TestState): String = when {
 }
 
 @Composable
-private fun TestRow(
+internal fun TestRow(
     test: UnifiedTest,
     state: TestState,
     line: String,
@@ -330,12 +402,8 @@ private fun TestRow(
             )
         }
         val label = test.actionLabel(state)
-        val emphasized = test.kind == TestKind.AUTO || state == TestState.NOT_RUN || state == TestState.NEEDS
         val enabled = !(test.kind == TestKind.AUTO && runActive)
-        if (emphasized) {
-            FilledTonalButton(onClick = onAction, enabled = enabled) { Text(label) }
-        } else {
-            OutlinedButton(onClick = onAction, enabled = enabled) { Text(label) }
-        }
+        TestActionButton(label = if (test.kind == TestKind.AUTO || test.isRequirementOnly) label else handsOnLabel(test.id, test.kind == TestKind.MANUAL),
+            handsOn = test.kind != TestKind.AUTO, onClick = onAction, enabled = enabled)
     }
 }

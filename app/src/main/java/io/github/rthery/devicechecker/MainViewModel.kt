@@ -35,6 +35,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = Repository.get(application)
 
     val profile: StateFlow<DeviceProfile> = repository.profile
+    val stock = repository.stock
     val results: StateFlow<Map<String, CheckResult>> = repository.results
     val verdicts: StateFlow<Map<String, ManualVerdict>> = repository.verdicts
     val progress: StateFlow<RunProgress?> = repository.progress
@@ -43,10 +44,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val lastRun: StateFlow<RunSummary?> = repository.lastRun
     val reportsDir: File get() = repository.reportsDir
     val catalog: StateFlow<TestCatalog> = repository.catalog
+    val collapsedCategories: StateFlow<Set<String>> = repository.collapsedCategories
+    val requirementPriority = repository.requirementPriority
+    fun setRequirementPriority(priority: io.github.rthery.devicechecker.data.RequirementPriority) = repository.setRequirementPriority(priority)
+    fun toggleCategory(category: io.github.rthery.devicechecker.data.Category) = repository.toggleCategory(category)
     val packs: StateFlow<List<PackEntry>> = repository.packs
     val theme: StateFlow<ThemeHints?> = repository.catalog
         .map { it.theme }
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.catalog.value.theme)
+
+    data class StockTransfer(val busy: Boolean = false, val message: String? = null, val error: Boolean = false)
+    private val _stockTransfer = MutableStateFlow(StockTransfer())
+    val stockTransfer = _stockTransfer.asStateFlow()
+
+    private fun transferStock(block: suspend () -> String) {
+        if (_stockTransfer.value.busy) return
+        _stockTransfer.value = StockTransfer(busy = true)
+        viewModelScope.launch {
+            try {
+                _stockTransfer.value = StockTransfer(message = block())
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                _stockTransfer.value = StockTransfer()
+                throw e
+            } catch (e: Exception) {
+                _stockTransfer.value = StockTransfer(message = e.message ?: "Stock transfer failed", error = true)
+            }
+        }
+    }
+
+    fun importStock(uri: Uri) = transferStock {
+        val text = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            getApplication<Application>().contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                ?: error("Cannot read this file")
+        }
+        repository.importStock(text)?.let { error(it) }
+        "Stock capture imported. Comparisons updated."
+    }
+
+    fun exportStock(uri: Uri) = transferStock {
+        val file = repository.captureStock()
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            getApplication<Application>().contentResolver.openOutputStream(uri, "wt")?.use { output ->
+                file.inputStream().use { it.copyTo(output) }
+            } ?: error("Cannot save to this file")
+        }
+        "Stock capture saved. Import it on the ROM you want to test."
+    }
 
     private val _packImportErrors = MutableStateFlow<List<String>?>(null)
     val packImportErrors: StateFlow<List<String>?> = _packImportErrors.asStateFlow()
@@ -88,9 +131,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _deepLink.value = null
     }
 
-    fun runAllAutomatic() = repository.startRun()
+    fun runAllAutomatic() = repository.startRun(catalog.value.all.filter { it.kind == io.github.rthery.devicechecker.data.TestKind.AUTO }.map { it.id }.toSet())
 
     fun runOne(testId: String) = repository.startRun(setOf(testId))
+
+    fun runTests(testIds: Set<String>) = repository.startRun(testIds)
 
     fun stopRun() = repository.stopRun()
 

@@ -28,6 +28,20 @@ class Store(context: Context) {
 
     fun saveVerdicts(verdicts: Map<String, ManualVerdict>) = write(KEY_VERDICTS, verdicts)
 
+    fun loadCollapsedCategories(): Set<String> = prefs.getStringSet("collapsed_categories", setOf(Category.OFF_DEVICE.name))!!.toSet()
+
+    fun saveCollapsedCategories(categories: Set<String>) {
+        prefs.edit().putStringSet("collapsed_categories", categories.toSet()).apply()
+    }
+
+    fun loadRequirementPriority(): RequirementPriority = RequirementPriority.entries.firstOrNull {
+        it.name == prefs.getString("requirement_priority", null)
+    } ?: RequirementPriority.ALL
+
+    fun saveRequirementPriority(priority: RequirementPriority) {
+        prefs.edit().putString("requirement_priority", priority.name).apply()
+    }
+
     fun loadStock(): StockSnapshot? = read(KEY_STOCK)
 
     fun saveStock(stock: StockSnapshot?) {

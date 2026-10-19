@@ -19,6 +19,25 @@ import org.junit.Test
 class TestCatalogTest {
 
     @Test
+    fun nfcHasOneVisibleTestAndKeepsLegacyProbeAvailable() {
+        val catalog = TestCatalog.builtIn
+        assertEquals(listOf("nfc.tag"), catalog.all.filter { it.requirements.any { r -> r.id == "hw.nfc" } }.map { it.id })
+        assertTrue("nfc.present" in catalog.checksById)
+        assertTrue("nfc.tag" in catalog.interactiveById)
+    }
+
+    @Test
+    fun successfulTagReadCompletesNfcDespiteInformationalAdapterResult() {
+        val catalog = TestCatalog.builtIn
+        val results = mapOf(
+            "nfc.present" to CheckResult(CheckStatus.INFO, "Adapter enabled"),
+            "nfc.tag" to CheckResult(CheckStatus.PASS, "Tag read"),
+        )
+        assertEquals(TestState.PASS, stateOf(catalog.byId.getValue("nfc.tag"), results, emptyMap(), true, null))
+        assertEquals(Outcome.PASS, evaluate(RequirementCatalog.byId.getValue("hw.nfc"), results, null, true))
+    }
+
+    @Test
     fun everyCheckSaysWhatItDoes() {
         val missing = CheckRegistry.all.map { it.id }.filter { CHECK_HOW[it].isNullOrEmpty() }
         assertEquals(emptyList<String>(), missing)

@@ -52,7 +52,7 @@ private const val NO_SIGNAL_GIVE_UP_MS = 180_000L
 
 val radioTests = listOf(
     InteractiveTest("gnss.fix", "GPS fix", "Waits for a GPS fix and reports satellites and time to first fix.") { GnssTest(it) },
-    InteractiveTest("nfc.tag", "NFC tag read", "Reads any NFC tag or card held against the phone.") { NfcTest(it) },
+    InteractiveTest("nfc.tag", "NFC", "Checks NFC, then reads a tag or card. The result is saved as soon as a tag is read.") { NfcTest(it) },
     InteractiveTest("bluetooth.scan", "Bluetooth scan", "Turns on discovery and BLE scanning and lists what it finds.") { BluetoothTest(it) },
 )
 
@@ -174,6 +174,9 @@ private fun NfcTest(scope: TestScope) {
     }
     var enabled by remember { mutableStateOf(adapter.isEnabled) }
     var tag by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(tag) {
+        tag?.let { scope.finish(pass("NFC works: tag read", it)) }
+    }
     LaunchedEffect(Unit) {
         while (!enabled) {
             delay(1_000)
@@ -185,7 +188,8 @@ private fun NfcTest(scope: TestScope) {
             val flags = NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_NFC_F or
                 NfcAdapter.FLAG_READER_NFC_V or NfcAdapter.FLAG_READER_NFC_BARCODE or NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS
             adapter.enableReaderMode(scope.activity, { found: Tag ->
-                tag = "UID ${found.id.joinToString("") { "%02X".format(it) }}\nTech: ${found.techList.joinToString { it.substringAfterLast('.') }}"
+                val details = "UID ${found.id.joinToString("") { "%02X".format(it) }}\nTech: ${found.techList.joinToString { it.substringAfterLast('.') }}"
+                Handler(Looper.getMainLooper()).post { tag = details }
             }, flags, null)
             onDispose { adapter.disableReaderMode(scope.activity) }
         }
@@ -196,12 +200,12 @@ private fun NfcTest(scope: TestScope) {
             Instructions("NFC is off. Turn it on.")
             ShortcutButton(Shortcuts.nfc)
         } else {
-            Instructions("Hold a tag, a transit card or a bank card against the back of the phone. The test passes when it is read.")
+            Instructions("NFC is on. Hold a tag or card against the back of the phone.")
         }
         val current = tag
         if (current != null) {
             Mono(current)
-            Button(onClick = { scope.finish(pass("Tag read", current)) }) { Text("Save result") }
+            Text("Tag read. Saving result…")
         } else {
             OutlinedButton(onClick = { scope.finish(fail("No tag read")) }) { Text("Give up") }
         }

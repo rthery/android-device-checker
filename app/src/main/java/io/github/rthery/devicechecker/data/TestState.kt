@@ -16,6 +16,15 @@ enum class TestState(val label: String) {
     QUEUED("Waiting"),
 }
 
+// These probes only ask for the corresponding functional test after detecting hardware.
+// Keep stock comparisons, warnings and failures independent.
+private val functionalConfirmation = mapOf(
+    "wifi.present" to "network.wifi", "bluetooth.present" to "bluetooth.scan",
+    "gnss.present" to "gnss.fix", "nfc.present" to "nfc.tag",
+    "fingerprint.present" to "fingerprint.auth", "ir.present" to "ir.transmit",
+    "camera.list" to "camera.capture", "audio.devices" to "audio.output",
+)
+
 fun stateOf(
     test: UnifiedTest,
     results: Map<String, CheckResult>,
@@ -43,7 +52,7 @@ fun stateOf(
         CheckStatus.PASS -> TestState.PASS
         CheckStatus.FAIL, CheckStatus.ERROR -> TestState.FAIL
         CheckStatus.WARN, CheckStatus.NEEDS_SHELL -> TestState.WARN
-        CheckStatus.INFO -> TestState.NEEDS
+        CheckStatus.INFO -> if (functionalConfirmation[test.id]?.let { results[it]?.status == CheckStatus.PASS } == true) TestState.PASS else TestState.NEEDS
         CheckStatus.NOT_APPLICABLE -> TestState.NA
     }
 }
@@ -57,6 +66,7 @@ fun lineFor(test: UnifiedTest, state: TestState, result: CheckResult?, waiver: W
     TestState.WAIVED -> "Waived: ${waiver?.reason.orEmpty()}"
     TestState.RUNNING -> "Running..."
     TestState.QUEUED -> "Waiting"
+    TestState.PASS -> if (result?.status == CheckStatus.INFO) "Confirmed by the follow-up test" else result?.summary ?: state.label
     TestState.NA -> if (test.lineageOnly && result == null) "Applies to LineageOS-based builds only" else result?.summary ?: "Marked not applicable"
     TestState.NOT_RUN -> when (test.kind) {
         TestKind.AUTO -> "Not run yet"
