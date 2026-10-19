@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker.pack
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
@@ -33,17 +34,24 @@ class PackCatalogTest {
         assertEquals(eos.name, led.source)
         assertTrue("pack.eos-bullhead.hardware" in catalog.checksById)
         assertTrue("pack.eos-bullhead.led" in catalog.interactiveById)
-        assertEquals(TestCatalog.builtIn.all.size + eos.tests.size - 1, catalog.all.size)
+        assertEquals(TestCatalog.builtIn.all.size + eos.tests.size, catalog.all.size)
         assertNull(TestCatalog.builtIn.byId["pack.eos-bullhead.led"])
     }
 
     @Test
     fun replacedRequirementAndItsOwnChecksDisappear() {
-        assertNull(catalog.requirementsById["sw.browser"])
-        assertNull(catalog.byId["browser.jelly"])
-        assertNull(catalog.checksById["browser.jelly"])
-        assertEquals("sw.browser", catalog.replacedBy("pack.eos-bullhead.browser")?.id)
-        assertEquals(listOf("pack.eos-bullhead.browser"), catalog.byId.getValue("pack.eos-bullhead.browser").requirements.map { it.id })
+        val text = """
+            {"schemaVersion": 1, "id": "other", "name": "Other", "rom": "OtherOS", "devices": ["bullhead"], "tests": [
+              {"type": "prop", "id": "browser", "title": "Browser", "category": "FEATURES", "level": "MUST", "replaces": "sw.browser", "prop": "ro.x", "equals": "1"}
+            ]}
+        """.trimIndent()
+        val pack = (PackParser.parse(text, RequirementCatalog.all) as PackParseResult.Valid).pack
+        val replacing = TestCatalog(listOf(pack))
+        assertNull(replacing.requirementsById["sw.browser"])
+        assertNull(replacing.byId["browser.jelly"])
+        assertNull(replacing.checksById["browser.jelly"])
+        assertEquals("sw.browser", replacing.replacedBy("pack.other.browser")?.id)
+        assertEquals(listOf("pack.other.browser"), replacing.byId.getValue("pack.other.browser").requirements.map { it.id })
         assertTrue("browser.jelly" in TestCatalog.builtIn.checksById)
     }
 
@@ -53,7 +61,7 @@ class PackCatalogTest {
         val waiver = catalog.waiverFor(trafficStats)
         assertEquals("hw.wifi.works", waiver?.requirement)
         val results = mapOf("network.trafficstats" to CheckResult(CheckStatus.FAIL, "unsupported"))
-        assertEquals(TestState.WAIVED, stateOf(trafficStats, results, emptyMap(), lineageBased = true, run = null, waiver = waiver))
+        assertEquals(TestState.WAIVED, stateOf(trafficStats, results, emptyMap(), rom = Rom.LINEAGE, run = null, waiver = waiver))
         assertNull(catalog.waiverFor(catalog.byId.getValue("network.wifi")))
         assertEquals(eos.theme, catalog.theme)
     }

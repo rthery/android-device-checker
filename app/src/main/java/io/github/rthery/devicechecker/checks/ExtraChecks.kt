@@ -102,6 +102,18 @@ val extraChecks = listOf(
         }
     },
 
+    Check("battery.capacity", "Battery capacity") {
+        val read = read(
+            "for f in charge_full_design charge_full cycle_count; do v=\$(cat /sys/class/power_supply/battery/\$f 2>/dev/null) && echo \"\$f=\$v\"; done; true"
+        ) { it.contains("charge_full") }
+        val output = read.output ?: return@Check needsShell()
+        val values = output.lines().mapNotNull { line -> line.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1].trim().toLongOrNull() } }.toMap()
+        val design = values["charge_full_design"]?.let(::toMilliAmpHours)
+        val full = values["charge_full"]?.let(::toMilliAmpHours)
+        val health = if (design != null && full != null && design > 0) " (${full * 100 / design} % of design)" else ""
+        info("Design ${design ?: "?"} mAh, full charge ${full ?: "?"} mAh$health. Compare with the device spec.", output, read.access)
+    },
+
     Check("bluetooth.codecs", "Bluetooth audio codecs") {
         if (!profile.stockHasBluetooth) return@Check notApplicable("Stock has no Bluetooth")
         val read = read("dumpsys bluetooth_manager | grep -iE 'codec|aptx|ldac' | head -40") { it.isNotBlank() }
@@ -117,6 +129,9 @@ val extraChecks = listOf(
 
 /** Some kernels report mA, others µA: anything under 20 A in mA is converted. */
 private fun toMicroAmps(value: Int): Int = if (value in 1 until 20_000) value * 1000 else value
+
+/** Kernels report µAh, a few report mAh. */
+private fun toMilliAmpHours(value: Long): Long = if (value >= 100_000) value / 1000 else value
 
 private suspend fun CheckContext.probeInternet(transport: Int): CheckResult? {
     val connectivity = context.getSystemService(ConnectivityManager::class.java)

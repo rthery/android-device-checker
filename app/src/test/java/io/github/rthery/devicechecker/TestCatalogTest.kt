@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.checks.CHECK_HOW
 import io.github.rthery.devicechecker.checks.CheckRegistry
@@ -33,8 +34,8 @@ class TestCatalogTest {
             "nfc.present" to CheckResult(CheckStatus.INFO, "Adapter enabled"),
             "nfc.tag" to CheckResult(CheckStatus.PASS, "Tag read"),
         )
-        assertEquals(TestState.PASS, stateOf(catalog.byId.getValue("nfc.tag"), results, emptyMap(), true, null))
-        assertEquals(Outcome.PASS, evaluate(RequirementCatalog.byId.getValue("hw.nfc"), results, null, true))
+        assertEquals(TestState.PASS, stateOf(catalog.byId.getValue("nfc.tag"), results, emptyMap(), Rom.LINEAGE, null))
+        assertEquals(Outcome.PASS, evaluate(RequirementCatalog.byId.getValue("hw.nfc"), results, null, Rom.LINEAGE))
     }
 
     @Test
@@ -66,9 +67,9 @@ class TestCatalogTest {
         val test = TestCatalog.builtIn.byId.getValue("camera.stress")
         assertTrue(test.requirements.size > 1)
         val results = mapOf("camera.stress" to CheckResult(CheckStatus.FAIL, "crash"))
-        assertEquals(TestState.FAIL, stateOf(test, results, emptyMap(), lineageBased = true, run = null))
+        assertEquals(TestState.FAIL, stateOf(test, results, emptyMap(), rom = Rom.LINEAGE, run = null))
         test.requirements.forEach { requirement ->
-            assertEquals(requirement.id, Outcome.FAIL, evaluate(requirement, results, null, lineageBased = true))
+            assertEquals(requirement.id, Outcome.FAIL, evaluate(requirement, results, null, rom = Rom.LINEAGE))
         }
     }
 
@@ -76,8 +77,8 @@ class TestCatalogTest {
     fun testerMarkConfirmsAnAssistedCheck() {
         val requirement = RequirementCatalog.byId.getValue("sw.kernel.clocks")
         val info = mapOf("kernel.clocks" to CheckResult(CheckStatus.INFO, "compare"))
-        assertEquals(Outcome.TO_VERIFY, evaluate(requirement, info, null, lineageBased = true))
+        assertEquals(Outcome.TO_VERIFY, evaluate(requirement, info, null, rom = Rom.LINEAGE))
         val marked = mapOf("kernel.clocks" to CheckResult(CheckStatus.PASS, "Marked passed by the tester", byTester = true))
-        assertEquals(Outcome.PASS, evaluate(requirement, marked, null, lineageBased = true))
+        assertEquals(Outcome.PASS, evaluate(requirement, marked, null, rom = Rom.LINEAGE))
     }
 }

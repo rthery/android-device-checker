@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.data.Category
 import io.github.rthery.devicechecker.data.TestCatalog
 import io.github.rthery.devicechecker.data.TestState
@@ -67,9 +68,9 @@ class TestBundlesTest {
     fun functionalPassConfirmsPresenceButNeverMasksAProbeFailure() {
         val probe = catalog.byId.getValue("gnss.present")
         val results = mapOf("gnss.present" to CheckResult(CheckStatus.INFO, "Run GPS"), "gnss.fix" to CheckResult(CheckStatus.PASS, "Fix"))
-        assertEquals(TestState.PASS, stateOf(probe, results, emptyMap(), true, null))
-        assertEquals(TestState.FAIL, stateOf(probe, results + (probe.id to CheckResult(CheckStatus.FAIL, "Missing hardware")), emptyMap(), true, null))
-        assertEquals(TestState.WARN, stateOf(probe, results + (probe.id to CheckResult(CheckStatus.WARN, "Missing configuration")), emptyMap(), true, null))
-        assertEquals(TestState.NEEDS, stateOf(probe, results - "gnss.fix", emptyMap(), true, null))
+        assertEquals(TestState.PASS, stateOf(probe, results, emptyMap(), Rom.LINEAGE, null))
+        assertEquals(TestState.FAIL, stateOf(probe, results + (probe.id to CheckResult(CheckStatus.FAIL, "Missing hardware")), emptyMap(), Rom.LINEAGE, null))
+        assertEquals(TestState.WARN, stateOf(probe, results + (probe.id to CheckResult(CheckStatus.WARN, "Missing configuration")), emptyMap(), Rom.LINEAGE, null))
+        assertEquals(TestState.NEEDS, stateOf(probe, results - "gnss.fix", emptyMap(), Rom.LINEAGE, null))
     }
 }

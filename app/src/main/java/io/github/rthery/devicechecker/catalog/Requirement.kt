@@ -8,6 +8,12 @@ enum class Level(val label: String) {
     MAY("MAY"),
 }
 
+/** ROM families with rules of their own. A build is LineageOS-based when it has either. */
+enum class Rom(val label: String) {
+    LINEAGE("LineageOS"),
+    EOS("/e/OS"),
+}
+
 enum class TestMode(val label: String) {
     /** The app decides pass or fail on its own. */
     AUTOMATED("Automated"),
@@ -41,6 +47,7 @@ enum class Section(val title: String) {
     IR("IR"),
     SD_CARD("SD card"),
     SENSORS("Sensors"),
+    BATTERY("Battery and charging"),
     ACCESSORIES("Accessories and deviations"),
     DEVICE_TREE("Device tree and build"),
     KERNEL("Kernel"),
@@ -63,6 +70,15 @@ data class Requirement(
     val note: String? = null,
     /** Only meaningful on LineageOS-based builds; N/A elsewhere. */
     val lineageOnly: Boolean = false,
+    /** Only meaningful on this ROM family; N/A elsewhere. */
+    val rom: Rom? = null,
     /** Name of the device pack that added it; null for built-in requirements. */
     val source: String? = null,
-)
+    /** Where a built-in requirement comes from when it is not the charter. */
+    val reference: String? = null,
+) {
+    fun appliesTo(buildRom: Rom?): Boolean = (!lineageOnly || buildRom != null) && (rom == null || rom == buildRom)
+
+    val scopeLabel: String?
+        get() = rom?.let { "Applies to ${it.label} builds only" } ?: if (lineageOnly) "Applies to LineageOS-based builds only" else null
+}

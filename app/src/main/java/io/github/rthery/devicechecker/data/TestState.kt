@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker.data
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.pack.Waiver
@@ -29,7 +30,7 @@ fun stateOf(
     test: UnifiedTest,
     results: Map<String, CheckResult>,
     verdicts: Map<String, ManualVerdict>,
-    lineageBased: Boolean,
+    rom: Rom?,
     run: RunProgress?,
     waiver: Waiver? = null,
 ): TestState {
@@ -37,7 +38,7 @@ fun stateOf(
         if (test.id == run.currentId) return TestState.RUNNING
         if (test.id in run.pendingIds) return TestState.QUEUED
     }
-    if (test.lineageOnly && !lineageBased) return TestState.NA
+    if (!test.appliesTo(rom)) return TestState.NA
     if (waiver != null && verdicts[test.id] == null && results[test.id]?.byTester != true) return TestState.WAIVED
     if (test.isRequirementOnly) {
         return when (verdicts[test.id]?.verdict) {
@@ -67,7 +68,7 @@ fun lineFor(test: UnifiedTest, state: TestState, result: CheckResult?, waiver: W
     TestState.RUNNING -> "Running..."
     TestState.QUEUED -> "Waiting"
     TestState.PASS -> if (result?.status == CheckStatus.INFO) "Confirmed by the follow-up test" else result?.summary ?: state.label
-    TestState.NA -> if (test.lineageOnly && result == null) "Applies to LineageOS-based builds only" else result?.summary ?: "Marked not applicable"
+    TestState.NA -> result?.summary ?: test.scopeLabel ?: "Marked not applicable"
     TestState.NOT_RUN -> when (test.kind) {
         TestKind.AUTO -> "Not run yet"
         TestKind.GUIDED -> "Not run yet. Tap Start"

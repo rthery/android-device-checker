@@ -3,6 +3,7 @@ package io.github.rthery.devicechecker.data
 import io.github.rthery.devicechecker.catalog.Level
 import io.github.rthery.devicechecker.catalog.Requirement
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.catalog.Section
 import io.github.rthery.devicechecker.catalog.TestMode
 import io.github.rthery.devicechecker.checks.CHECK_HOW
@@ -25,7 +26,7 @@ enum class TestKind(val label: String) {
 enum class Category(val title: String) {
     SECURITY("Security and build"),
     KERNEL("Kernel"),
-    CAMERA("Camera and video"),
+    CAMERA("Cameras and codecs"),
     AUDIO("Audio"),
     CONNECTIVITY("Connectivity"),
     HARDWARE("Display, sensors and storage"),
@@ -40,7 +41,7 @@ fun Section.category(): Category = when (this) {
     Section.CAMERA, Section.CODECS -> Category.CAMERA
     Section.AUDIO -> Category.AUDIO
     Section.RIL, Section.WIFI, Section.USB, Section.GPS, Section.BLUETOOTH, Section.NFC -> Category.CONNECTIVITY
-    Section.DISPLAY, Section.FINGERPRINT, Section.IR, Section.SD_CARD, Section.SENSORS, Section.ACCESSORIES -> Category.HARDWARE
+    Section.DISPLAY, Section.FINGERPRINT, Section.IR, Section.SD_CARD, Section.SENSORS, Section.BATTERY, Section.ACCESSORIES -> Category.HARDWARE
     Section.FEATURES, Section.GENERAL, Section.PROJECT -> Category.SYSTEM
     Section.UPDATES, Section.VENDOR -> Category.UPDATES
 }
@@ -63,6 +64,12 @@ data class UnifiedTest(
     val level: Level? get() = requirements.minByOrNull { it.level.ordinal }?.level
 
     val lineageOnly: Boolean get() = requirements.isNotEmpty() && requirements.all { it.lineageOnly }
+
+    /** False when every covered requirement is for another ROM family. */
+    fun appliesTo(buildRom: Rom?): Boolean = requirements.isEmpty() || requirements.any { it.appliesTo(buildRom) }
+
+    /** Set when every covered requirement is limited the same way. */
+    val scopeLabel: String? get() = requirements.map { it.scopeLabel }.distinct().singleOrNull()
 
     /** Requirement-only tests store their verdict under the requirement id. */
     val isRequirementOnly: Boolean get() = kind == TestKind.OFF_DEVICE || (kind == TestKind.MANUAL && id in RequirementCatalog.byId)

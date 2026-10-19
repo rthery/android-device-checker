@@ -100,8 +100,8 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
     val bundles = remember(priorityTests) { bundleTests(priorityTests) }
     val grouped = remember(bundles) { bundles.groupBy { it.category } }
     val categoryTests = remember(grouped) { grouped.mapValues { (_, entries) -> entries.flatMap { it.tests } } }
-    val baseStates = remember(catalog, results, verdicts, deviceInfo.lineageBased) {
-        tests.associate { it.id to stateOf(it, results, verdicts, deviceInfo.lineageBased, null, waivers[it.id]) }
+    val baseStates = remember(catalog, results, verdicts, deviceInfo.rom) {
+        tests.associate { it.id to stateOf(it, results, verdicts, deviceInfo.rom, null, waivers[it.id]) }
     }
     val counted = remember(priorityTests) { priorityTests.filter { it.kind != TestKind.OFF_DEVICE } }
     val automaticIds = remember(priorityTests) { priorityTests.filter { it.kind == TestKind.AUTO }.map { it.id }.toSet() }
@@ -147,7 +147,7 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("Tests", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "${Build.MODEL} · Android ${Build.VERSION.RELEASE}${if (deviceInfo.lineageBased) " · LineageOS-based" else ""}",
+                        "${Build.MODEL} · Android ${Build.VERSION.RELEASE}${deviceInfo.rom?.let { " · ${it.label}" }.orEmpty()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -414,27 +414,26 @@ internal fun TestRow(
     ) {
         StateDot(state)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    test.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                LevelPill(test.level)
-            }
+            Text(
+                test.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             test.source?.let {
                 Text("From $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(
-                line,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (state == TestState.FAIL) state.colors().border else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                LevelPill(test.level)
+                Text(
+                    line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (state == TestState.FAIL) state.colors().border else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         val label = test.actionLabel(state)
         val enabled = !(test.kind == TestKind.AUTO && runActive)

@@ -41,7 +41,7 @@ private const val LEGACY_VIDEO_MS = 3_000L
  * not a way to select or certify a particular vendor Camera HAL version.
  */
 @SuppressLint("MissingPermission", "Deprecated")
-suspend fun runLegacyCameraProbe(context: Context): CheckResult = withContext(Dispatchers.IO) {
+suspend fun runLegacyCameraProbe(context: Context, onCamera: (id: Int, count: Int) -> Unit = { _, _ -> }): CheckResult = withContext(Dispatchers.IO) {
     val root = File(context.getExternalFilesDir(null) ?: context.filesDir, "reports/artifacts/hw.camera.hal")
     if (!root.exists() && !root.mkdirs()) {
         return@withContext CheckResult(CheckStatus.FAIL, "Could not create legacy camera artifact folder", root.absolutePath)
@@ -59,6 +59,7 @@ suspend fun runLegacyCameraProbe(context: Context): CheckResult = withContext(Di
         val video = File(root, "legacy-camera-$id.mp4")
         jpeg.delete()
         video.delete()
+        onCamera(id, count)
         try {
             withTimeout(LEGACY_CAMERA_TIMEOUT_MS) {
                 runOneLegacyCamera(context, id, jpeg, video)

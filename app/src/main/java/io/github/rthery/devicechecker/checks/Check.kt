@@ -3,6 +3,7 @@ package io.github.rthery.devicechecker.checks
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.data.StockSnapshot
 import io.github.rthery.devicechecker.profile.DeviceProfile
 import io.github.rthery.devicechecker.shell.AppShell
@@ -36,7 +37,7 @@ class CheckContext(
     val context: Context,
     val profile: DeviceProfile,
     private val privilegedShell: Shell?,
-    val lineageBased: Boolean,
+    val rom: Rom?,
     /** Root of the reports folder; tests write review files under artifacts/<test id>/. */
     val reportsDir: File? = null,
     /** Numeric knobs from the caller, such as iterations or gnss_timeout. */
@@ -45,6 +46,8 @@ class CheckContext(
     val stock: StockSnapshot? = null,
 ) {
     val hasPrivilegedShell: Boolean get() = privilegedShell != null
+
+    val lineageBased: Boolean get() = rom != null
 
     val crashWatcher = CrashWatcher(privilegedShell)
 

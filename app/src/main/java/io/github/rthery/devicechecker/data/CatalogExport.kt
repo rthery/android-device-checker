@@ -23,6 +23,8 @@ data class CatalogTest(
     val category: String,
     val level: String?,
     val lineageOnly: Boolean,
+    /** Label set when every requirement the test covers is limited to one ROM family. */
+    val scope: String?,
     val source: String?,
     /** True when the app can run it with no one at the screen. */
     val headless: Boolean,
@@ -90,6 +92,7 @@ fun buildCatalog(tests: List<UnifiedTest>, reportsDir: String): Catalog {
                 category = test.category.title,
                 level = test.level?.label,
                 lineageOnly = test.lineageOnly,
+                scope = test.scopeLabel,
                 source = test.source,
                 headless = isHeadless,
                 needsHuman = !isHeadless || test.id in NEEDS_JUDGEMENT,

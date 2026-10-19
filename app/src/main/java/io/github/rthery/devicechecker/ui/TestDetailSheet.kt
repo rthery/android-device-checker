@@ -121,8 +121,12 @@ internal fun TestDetailContent(
                     Text("${requirement.level.label}: ${requirement.text}", style = MaterialTheme.typography.bodyLarge)
                     requirement.note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
-                if (test.lineageOnly) Hint("Applies to LineageOS-based builds only")
-                Hint(test.source?.let { "From the device pack $it" } ?: "From the ${RequirementCatalog.SOURCE_TITLE}")
+                test.scopeLabel?.let { Hint(it) }
+                Hint(
+                    test.source?.let { "From the device pack $it" }
+                        ?: test.requirements.firstNotNullOfOrNull { it.reference }?.let { "From the $it" }
+                        ?: "From the ${RequirementCatalog.SOURCE_TITLE}"
+                )
                 test.requirements.firstNotNullOfOrNull { catalog.replacedBy(it.id) }?.let { replaced ->
                     Hint("Replaces the built-in requirement: ${replaced.level.label}: ${replaced.text}")
                 }

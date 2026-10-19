@@ -166,7 +166,7 @@ class Repository private constructor(context: Context) {
     suspend fun runChecks(ids: Set<String>? = null, options: Map<String, Int> = emptyMap()) = runMutex.withLock {
         writeStatus("running", "starting")
         ShizukuShell.awaitReady()
-        val context = CheckContext(appContext, _profile.value, ShizukuShell.takeIf { it.isReady }, DeviceInfo.isLineageBased(), reportsDir, options, _stock.value)
+        val context = CheckContext(appContext, _profile.value, ShizukuShell.takeIf { it.isReady }, DeviceInfo.detectRom(), reportsDir, options, _stock.value)
         val checks = if (ids == null) _catalog.value.checks
         else (_catalog.value.checks + HeadlessRegistry.all).filter { it.id in ids }.distinctBy { it.id }
         var ran = 0
@@ -207,7 +207,7 @@ class Repository private constructor(context: Context) {
     /** Captures what this ROM reports into reports/stock.json; meant to run on the stock ROM. */
     suspend fun captureStock(): File = withContext(Dispatchers.IO) {
         ShizukuShell.awaitReady()
-        val context = CheckContext(appContext, _profile.value, ShizukuShell.takeIf { it.isReady }, DeviceInfo.isLineageBased(), reportsDir)
+        val context = CheckContext(appContext, _profile.value, ShizukuShell.takeIf { it.isReady }, DeviceInfo.detectRom(), reportsDir)
         val snapshot = context.captureStock()
         File(reportsDir, STOCK_FILE).apply { writeText(stockJson.encodeToString(StockSnapshot.serializer(), snapshot)) }
             .also { Log.i(TAG, "Stock capture written to ${it.absolutePath}") }

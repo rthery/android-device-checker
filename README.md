@@ -2,7 +2,13 @@
 
 Android app (Android 8.0+) that tests an Android build, custom ROM or stock, on real hardware against a device support checklist, and saves Markdown and JSON reports.
 
-The checklist is paraphrased and adapted from the [LineageOS Device Support Requirements](https://github.com/LineageOS/charter/blob/main/device-support-requirements.md) ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)), which itself adapts parts of Google's Android Compatibility Definition Document. Items specific to LineageOS (userdebug build type, Updater, Recovery, Jelly, LiveDisplay, device tree and maintainer rules) count as N/A on builds without `ro.lineage.version`. The app is not affiliated with LineageOS or Google; credits are in the in-app About screen.
+The checklist is paraphrased and adapted from the [LineageOS Device Support Requirements](https://github.com/LineageOS/charter/blob/main/device-support-requirements.md) ([CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)), which itself adapts parts of Google's Android Compatibility Definition Document. Tests that come from elsewhere say so in their details: the kernel floor from the LineageOS 23.0 and 24.0 release notes, and tests adapted from the [/e/OS QA plans](https://gitlab.e.foundation/e/qa/test-cases) (SMS and MMS, VoLTE and VoWiFi, dual SIM and eSIM, multitouch, battery and charging, USB OTG, factory reset). Those apply to every ROM as SHOULD.
+
+The app detects the ROM family. A build with `ro.lineage.version` is LineageOS-based; it is /e/OS when `ro.elegal.url` also points to e.foundation or Murena, and LineageOS otherwise.
+
+- LineageOS project rules (userdebug build type, Updater, Recovery and add-ons, Jelly, device tree, wiki and maintainer rules) apply to LineageOS only.
+- /e/OS rules apply to /e/OS only: core apps and browser (MUST), microG and its self-check, Advanced Privacy, default DNS, Play Integrity basic, a relocked bootloader on lockable devices, OTA updates and the install guide (SHOULD). /e/OS publishes no officialization checklist, so these come from its build types documentation, relocking guide and QA plans.
+- The rest of the charter, including LiveDisplay and the kernel floor, applies to both. The app is not affiliated with LineageOS or Google; credits are in the in-app About screen.
 
 Each requirement has a test mode:
 
@@ -66,9 +72,9 @@ Unknown keys are errors. A file with another `schemaVersion` is refused.
 | `waivers` | `{"requirement", "reason", "checks"?, "reference"?}`. Without `checks` the whole requirement shows as Waived; with `checks`, only those check or test results are ignored. A tester verdict still wins. |
 | `theme` | `accentSeed` (`#RRGGBB`), `cornerScale` (0 to 3), `fontFamily` (a system font family name such as `sans-serif-condensed`), `icon` (`aosp`, `lineage` or `eos`). |
 
-Every test has `type`, `id`, `title`, `category` (a requirement section: `GENERAL`, `AUDIO`, `RIL`, `ENCRYPTION`, `WIFI`, `USB`, `GPS`, `BLUETOOTH`, `CAMERA`, `CODECS`, `DISPLAY`, `NFC`, `FINGERPRINT`, `IR`, `SD_CARD`, `SENSORS`, `ACCESSORIES`, `DEVICE_TREE`, `KERNEL`, `SECURITY`, `UPDATES`, `BLOBS`, `VENDOR`, `FEATURES`, `PROJECT`), `level` (`MUST`, `MUST_NOT`, `SHOULD`, `SHOULD_NOT`, `MAY`), an optional `description` and an optional `replaces`. It appears in the test list under its category with a "From <pack>" label, its id is `pack.<pack id>.<test id>`, and its results are stored and reported like built-in tests.
+Every test has `type`, `id`, `title`, `category` (a requirement section: `GENERAL`, `AUDIO`, `RIL`, `ENCRYPTION`, `WIFI`, `USB`, `GPS`, `BLUETOOTH`, `CAMERA`, `CODECS`, `DISPLAY`, `NFC`, `FINGERPRINT`, `IR`, `SD_CARD`, `SENSORS`, `BATTERY`, `ACCESSORIES`, `DEVICE_TREE`, `KERNEL`, `SECURITY`, `UPDATES`, `BLOBS`, `VENDOR`, `FEATURES`, `PROJECT`), `level` (`MUST`, `MUST_NOT`, `SHOULD`, `SHOULD_NOT`, `MAY`), an optional `description` and an optional `replaces`. It appears in the test list under its category with a "From <pack>" label, its id is `pack.<pack id>.<test id>`, and its results are stored and reported like built-in tests.
 
-`replaces` names a built-in requirement the test stands in for, when the ROM meets it another way: the /e/OS pack replaces "Jelly or another LineageOS-sourced browser ships" with a check for the /e/OS browser. The built-in requirement disappears, and so do the built-in checks that covered only it. The approval dialog, the test details and the reports show what was replaced. Use a waiver instead when the requirement cannot be met at all; a requirement cannot be both.
+`replaces` names a built-in requirement the test stands in for, when the ROM meets it another way: a pack for a LineageOS fork that ships its own browser can replace "Jelly or another LineageOS-sourced browser ships" with a check for that browser. The built-in requirement disappears, and so do the built-in checks that covered only it. The approval dialog, the test details and the reports show what was replaced. Use a waiver instead when the requirement cannot be met at all; a requirement cannot be both.
 
 | `type` | Fields | Runs |
 | --- | --- | --- |
@@ -79,8 +85,8 @@ Every test has `type`, `id`, `title`, `category` (a requirement section: `GENERA
 | `guided` | `intro`, `steps` of `{"text", "shortcut"?, "command"?}` | Manual step list, like the built-in ones |
 
 ```json
-{ "type": "shell", "id": "microg", "title": "microG services are installed", "category": "FEATURES", "level": "SHOULD",
-  "command": "cmd package list packages com.google.android.gms", "expect": "package:com\\.google\\.android\\.gms" }
+{ "type": "shell", "id": "battery.health", "title": "Battery reports good health", "category": "BATTERY", "level": "SHOULD",
+  "command": "dumpsys battery | grep health", "expect": "health: 2" }
 ```
 
 ### Shell command allowlist

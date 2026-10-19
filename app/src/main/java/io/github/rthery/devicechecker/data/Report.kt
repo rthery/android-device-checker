@@ -45,11 +45,15 @@ data class ReportRequirement(
     val text: String,
     val outcome: String,
     val lineageOnly: Boolean = false,
+    /** ROM family the requirement is limited to. */
+    val rom: String? = null,
     val note: String? = null,
     val verdict: String? = null,
     val verdictNote: String? = null,
     /** Device pack that added this requirement. */
     val source: String? = null,
+    /** Where a built-in requirement comes from when it is not the charter. */
+    val reference: String? = null,
     /** Built-in requirement this pack requirement stands in for. */
     val replaces: String? = null,
     val waiver: String? = null,
@@ -110,12 +114,14 @@ fun buildJsonReport(
             level = requirement.level.label,
             mode = requirement.mode.name,
             text = requirement.text,
-            outcome = evaluate(requirement, results, verdict, deviceInfo.lineageBased, waiver).name,
+            outcome = evaluate(requirement, results, verdict, deviceInfo.rom, waiver).name,
             lineageOnly = requirement.lineageOnly,
+            rom = requirement.rom?.label,
             note = requirement.note,
             verdict = verdict?.verdict?.name,
             verdictNote = verdict?.note?.ifBlank { null },
             source = requirement.source,
+            reference = requirement.reference,
             replaces = catalog.replacedBy(requirement.id)?.let { "${it.id}: ${it.text}" },
             waiver = waiver?.reason,
             waivedChecks = waiver?.checks.orEmpty(),
@@ -136,7 +142,7 @@ fun buildJsonReport(
         summary = requirements.groupingBy { it.outcome }.eachCount(),
         nextSteps = nextSteps(
             catalog.all,
-            catalog.all.associate { it.id to stateOf(it, results, verdicts, deviceInfo.lineageBased, null, catalog.waiverFor(it)) },
+            catalog.all.associate { it.id to stateOf(it, results, verdicts, deviceInfo.rom, null, catalog.waiverFor(it)) },
             results, profile, shizukuReady, hasStock,
         ),
         requirements = requirements,
@@ -182,8 +188,9 @@ fun JsonReport.toMarkdown(): String = buildString {
             appendLine()
             appendLine("### [${item.outcome}] ${item.level}: ${item.text}")
             appendLine()
-            appendLine("id `${item.id}`, mode ${item.mode}${if (item.lineageOnly) ", LineageOS-based builds only" else ""}")
+            appendLine("id `${item.id}`, mode ${item.mode}${item.rom?.let { ", $it builds only" } ?: if (item.lineageOnly) ", LineageOS-based builds only" else ""}")
             item.source?.let { appendLine("From $it") }
+            item.reference?.let { appendLine("From the $it") }
             item.replaces?.let { appendLine("Replaces $it") }
             item.waiver?.let {
                 val scope = if (item.waivedChecks.isEmpty()) "" else " for ${item.waivedChecks.joinToString()}"

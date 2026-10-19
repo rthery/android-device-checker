@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker.checks
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.compat.Compat
 import android.app.admin.DevicePolicyManager
 import android.content.pm.PackageManager
@@ -24,7 +25,7 @@ private const val SECURITY_PATCH_WARN_DAYS = 90L
 val softwareChecks = listOf(
     Check("build.type", "Build type") {
         val type = Build.TYPE
-        if (!lineageBased) return@Check notApplicable("userdebug is a LineageOS rule; this $type build is not LineageOS-based")
+        if (rom != Rom.LINEAGE) return@Check notApplicable("userdebug is a LineageOS rule; this $type build is not LineageOS")
         if (type == "userdebug") pass("Build type is userdebug") else fail("Build type is $type, expected userdebug")
     },
 
@@ -154,13 +155,13 @@ val softwareChecks = listOf(
     },
 
     Check("updater.present", "LineageOS Updater") {
-        if (!lineageBased) return@Check notApplicable("Not a LineageOS-based build")
+        if (rom != Rom.LINEAGE) return@Check notApplicable("Not a LineageOS build")
         if (isInstalled("org.lineageos.updater")) info("Updater is installed. Test an OTA upgrade by hand.")
         else fail("org.lineageos.updater is not installed")
     },
 
     Check("browser.jelly", "LineageOS browser") {
-        if (!lineageBased) return@Check notApplicable("Not a LineageOS-based build")
+        if (rom != Rom.LINEAGE) return@Check notApplicable("Not a LineageOS build")
         if (isInstalled("org.lineageos.jelly")) pass("Jelly is installed")
         else warn("Jelly is not installed", "Another LineageOS-sourced browser also satisfies the requirement.")
     },
@@ -186,7 +187,7 @@ val softwareChecks = listOf(
 
 private val BANNED_VENDOR_MARKERS = listOf("megvii", "megface", "mgface", "sensetime", "stmobile")
 
-private fun CheckContext.isInstalled(packageName: String): Boolean = try {
+internal fun CheckContext.isInstalled(packageName: String): Boolean = try {
     context.packageManager.getPackageInfo(packageName, 0)
     true
 } catch (_: PackageManager.NameNotFoundException) {

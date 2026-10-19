@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.data.StockSnapshot
@@ -43,7 +44,7 @@ class LlmInterfaceTest {
             "camera.capture" to CheckResult(CheckStatus.INFO, "2 photos saved", artifacts = listOf("artifacts/camera.capture/camera0.jpg")),
             "selinux" to CheckResult(CheckStatus.FAIL, "Permissive"),
         )
-        val states = tests.associate { it.id to stateOf(it, results, emptyMap(), lineageBased = true, run = null) }
+        val states = tests.associate { it.id to stateOf(it, results, emptyMap(), rom = Rom.LINEAGE, run = null) }
         val steps = nextSteps(tests, states, results, DeviceProfile(), shizukuReady = false, hasStock = false)
         assertEquals("Connect Shizuku", steps.first().title)
         assertTrue(steps.any { it.title == "Import a stock capture" })

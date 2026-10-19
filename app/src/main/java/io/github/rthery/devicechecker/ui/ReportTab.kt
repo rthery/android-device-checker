@@ -49,7 +49,7 @@ fun ReportTab(viewModel: MainViewModel, modifier: Modifier = Modifier) {
     LaunchedEffect(results, verdicts) { viewModel.refreshHistory() }
 
     val tests = catalog.all.filter { it.kind != TestKind.OFF_DEVICE }
-    val counts = tests.groupingBy { stateOf(it, results, verdicts, deviceInfo.lineageBased, null, catalog.waiverFor(it)) }.eachCount()
+    val counts = tests.groupingBy { stateOf(it, results, verdicts, deviceInfo.rom, null, catalog.waiverFor(it)) }.eachCount()
     val total = tests.size.coerceAtLeast(1)
 
     Column(

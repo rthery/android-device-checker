@@ -5,8 +5,11 @@ import android.graphics.BitmapFactory
 import android.hardware.camera2.CameraManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -27,8 +30,9 @@ internal val cameraHalTest = InteractiveTest(
     "Lists the camera HALs, takes photos and records video with sound through Camera2 and legacy Camera1 on every accessible camera. Review the saved media before passing. Public APIs cannot select an alternate HAL version.",
 ) { scope -> CameraHalScreen(scope) }
 
-internal suspend fun CheckContext.runCameraHalCoverage(): CheckResult {
+internal suspend fun CheckContext.runCameraHalCoverage(onStep: (String) -> Unit = {}): CheckResult {
     val dir = artifactsFor("hw.camera.hal") ?: return warn("No reports folder available")
+    onStep("Reading the camera HAL inventory")
     val inventory = read("dumpsys media.camera", { "Camera HAL device" in it })
     val parsed = parseCameraHalInventory(inventory.output.orEmpty())
     val lines = mutableListOf<String>()
@@ -42,8 +46,10 @@ internal suspend fun CheckContext.runCameraHalCoverage(): CheckResult {
     var warnings = false
     val targets = discoverCameras(context.getSystemService(CameraManager::class.java))
     if (targets.isEmpty()) return fail("No Camera2 cameras exposed", lines.joinToString("\n"))
-    for (target in targets) {
+    targets.forEachIndexed { index, target ->
+        val position = "camera ${index + 1} of ${targets.size}"
         try {
+            onStep("Camera2: ${target.label} photo ($position)")
             val photo = takePhoto(context, target)
             lines += "Camera2 ${target.label} photo: ${photo.status}: ${photo.note}"
             failed = failed || photo.status == CheckStatus.FAIL
@@ -53,6 +59,7 @@ internal suspend fun CheckContext.runCameraHalCoverage(): CheckResult {
                 writeExifRotation(file, photo.rotation)
                 artifacts += relative(file)
             }
+            onStep("Camera2: ${target.label} video with sound ($position)")
             val clip = recordClip(context, target)
             lines += "Camera2 ${target.label} video: ${clip.status}: ${clip.note}"
             failed = failed || clip.status == CheckStatus.FAIL
@@ -71,7 +78,7 @@ internal suspend fun CheckContext.runCameraHalCoverage(): CheckResult {
             lines += "Camera2 ${target.label}: FAIL ${e.message}"
         }
     }
-    val legacy = runLegacyCameraProbe(context)
+    val legacy = runLegacyCameraProbe(context) { id, count -> onStep("Camera1: camera $id photo and video (camera ${id + 1} of $count)") }
     lines += legacy.details
     artifacts += legacy.artifacts
     failed = failed || legacy.status == CheckStatus.FAIL || legacy.status == CheckStatus.ERROR
@@ -90,6 +97,7 @@ private fun CameraHalScreen(scope: TestScope) {
     RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), "Testing camera interfaces needs camera and microphone access.") {
         var result by remember { mutableStateOf<CheckResult?>(null) }
         var running by remember { mutableStateOf(false) }
+        var step by remember { mutableStateOf("") }
         var playing by remember { mutableStateOf<String?>(null) }
         val coroutine = rememberCoroutineScope()
         val root = remember { File(scope.activity.getExternalFilesDir(null), "reports") }
@@ -100,10 +108,17 @@ private fun CameraHalScreen(scope: TestScope) {
                     running = true
                     result = null
                     try {
-                        result = CheckContext(scope.activity, scope.profile, scope.privilegedShell, false, root).runCameraHalCoverage()
-                    } finally { running = false }
+                        result = CheckContext(scope.activity, scope.profile, scope.privilegedShell, null, root).runCameraHalCoverage { step = it }
+                    } finally {
+                        running = false
+                        step = ""
+                    }
                 }
             }) { Text(if (running) "Testing camera interfaces…" else "Run coverage test") }
+            if (running) {
+                LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                Text(step.ifEmpty { "Starting…" })
+            }
             result?.let { outcome ->
                 Text(outcome.summary)
                 Text(outcome.details)

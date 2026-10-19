@@ -1,5 +1,7 @@
 package io.github.rthery.devicechecker.checks
 
+import android.os.Build
+
 private val APPROVED_GOVERNORS = setOf(
     "conservative", "energy_aware", "energy_step", "interactive", "ondemand", "performance",
     "powersave", "sched", "sched_pixel", "schedutil", "userspace", "walt",
@@ -25,6 +27,20 @@ private val SCHEDULER_LINE = Regex("^[A-Za-z0-9_-]+: ([\\w-]+ )*\\[[\\w-]+]( [\\
 
 private const val EXFAT_MAINLINE_MAJOR = 5
 private const val EXFAT_MAINLINE_MINOR = 7
+
+private const val ANDROID_16_SDK = 36
+private val EBPF_BACKPORT_FLOOR = KernelVersion(4, 14)
+private val EBPF_NATIVE = KernelVersion(5, 4)
+
+internal data class KernelVersion(val major: Int, val minor: Int) : Comparable<KernelVersion> {
+    override fun compareTo(other: KernelVersion) = compareValuesBy(this, other, { it.major }, { it.minor })
+    override fun toString() = "$major.$minor"
+
+    companion object {
+        fun parse(release: String): KernelVersion? =
+            Regex("^(\\d+)\\.(\\d+)").find(release)?.destructured?.let { (a, b) -> KernelVersion(a.toInt(), b.toInt()) }
+    }
+}
 
 val kernelChecks = listOf(
     Check("kernel.governors", "CPU governors") {
@@ -72,13 +88,31 @@ val kernelChecks = listOf(
         val filesystems = readFileAsApp("/proc/filesystems") ?: read("cat /proc/filesystems").output ?: return@Check needsShell()
         val hasExfat = filesystems.lines().any { it.trim().endsWith("exfat") }
         val kernel = System.getProperty("os.version").orEmpty()
-        val (major, minor) = Regex("^(\\d+)\\.(\\d+)").find(kernel)?.destructured?.let { (a, b) -> a.toInt() to b.toInt() } ?: (0 to 0)
-        val mainlineCapable = major > EXFAT_MAINLINE_MAJOR || (major == EXFAT_MAINLINE_MAJOR && minor >= EXFAT_MAINLINE_MINOR)
+        val mainlineCapable = (KernelVersion.parse(kernel) ?: KernelVersion(0, 0)) >= KernelVersion(EXFAT_MAINLINE_MAJOR, EXFAT_MAINLINE_MINOR)
         when {
             !hasExfat -> pass("exFAT is not built in, which the charter allows", "Kernel $kernel")
             mainlineCapable -> pass("exFAT on kernel $kernel", "Allowed if it is the mainline or vendor driver.")
             profile.stockHasExfat -> pass("exFAT on kernel $kernel, stock had exFAT")
             else -> fail("exFAT on kernel $kernel but stock did not support it")
+        }
+    },
+
+    Check("kernel.release", "Kernel for the LineageOS release") {
+        val release = System.getProperty("os.version").orEmpty()
+        val version = KernelVersion.parse(release) ?: return@Check warn("Cannot read the kernel version", release)
+        val android = "Android ${Build.VERSION.RELEASE}"
+        val details = "Kernel $release on $android"
+        when {
+            Build.VERSION.SDK_INT < ANDROID_16_SDK -> info("Kernel $version on $android: no published kernel floor for this release", details)
+            version < EBPF_BACKPORT_FLOOR -> warn(
+                "Kernel $version on $android: LineageOS takes 4.4 and 4.9 devices only as 22.2 submissions",
+                "$details\n23.x and later need $EBPF_BACKPORT_FLOOR or later with eBPF backports equivalent to $EBPF_NATIVE.",
+            )
+            version < EBPF_NATIVE -> info(
+                "Kernel $version on $android: accepted only with full eBPF backports",
+                "$details\nCheck the kernel tree has eBPF backported to match $EBPF_NATIVE and builds without GCC.",
+            )
+            else -> pass("Kernel $version meets the $android floor ($EBPF_NATIVE)", details)
         }
     },
 )

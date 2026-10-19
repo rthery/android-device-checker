@@ -1,6 +1,7 @@
 package io.github.rthery.devicechecker.data
 
 import io.github.rthery.devicechecker.catalog.Requirement
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.catalog.TestMode
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
@@ -27,7 +28,7 @@ fun evaluate(
     requirement: Requirement,
     results: Map<String, CheckResult>,
     verdict: ManualVerdict?,
-    lineageBased: Boolean,
+    rom: Rom?,
     waiver: Waiver? = null,
 ): Outcome {
     when (verdict?.verdict) {
@@ -36,7 +37,7 @@ fun evaluate(
         Verdict.NOT_APPLICABLE -> return Outcome.NOT_APPLICABLE
         Verdict.UNTESTED, null -> Unit
     }
-    if (requirement.lineageOnly && !lineageBased) return Outcome.NOT_APPLICABLE
+    if (!requirement.appliesTo(rom)) return Outcome.NOT_APPLICABLE
     if (waiver != null && waiver.checks.isEmpty()) return Outcome.WAIVED
     if (requirement.mode == TestMode.OUT_OF_SCOPE) return Outcome.NOT_ON_DEVICE
     val waived = waiver?.checks.orEmpty().toSet()

@@ -1,12 +1,15 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.catalog.TestMode
 import io.github.rthery.devicechecker.checks.CheckRegistry
 import io.github.rthery.devicechecker.interactive.TestRegistry
 import io.github.rthery.devicechecker.data.Outcome
 import io.github.rthery.devicechecker.data.evaluate
+import io.github.rthery.devicechecker.data.TestCatalog
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,10 +48,31 @@ class CatalogTest {
     }
 
     @Test
-    fun lineageOnlyRequirementsAreNotApplicableElsewhere() {
+    fun romScopedRequirementsAreNotApplicableElsewhere() {
         val updater = RequirementCatalog.byId.getValue("sw.updater")
-        assertEquals(Outcome.NOT_APPLICABLE, evaluate(updater, emptyMap(), null, lineageBased = false))
-        assertEquals(Outcome.UNTESTED, evaluate(updater, emptyMap(), null, lineageBased = true))
+        assertEquals(Outcome.NOT_APPLICABLE, evaluate(updater, emptyMap(), null, rom = null))
+        assertEquals(Outcome.NOT_APPLICABLE, evaluate(updater, emptyMap(), null, rom = Rom.EOS))
+        assertEquals(Outcome.UNTESTED, evaluate(updater, emptyMap(), null, rom = Rom.LINEAGE))
+        val eosApps = RequirementCatalog.byId.getValue("eos.apps")
+        assertEquals(Outcome.NOT_APPLICABLE, evaluate(eosApps, emptyMap(), null, rom = Rom.LINEAGE))
+        assertEquals(Outcome.UNTESTED, evaluate(eosApps, emptyMap(), null, rom = Rom.EOS))
+    }
+
+    @Test
+    fun lineageBasedRequirementsApplyToEveryLineageFamily() {
+        val liveDisplay = RequirementCatalog.byId.getValue("sw.livedisplay")
+        assertEquals(Outcome.NOT_APPLICABLE, evaluate(liveDisplay, emptyMap(), null, rom = null))
+        assertEquals(Outcome.UNTESTED, evaluate(liveDisplay, emptyMap(), null, rom = Rom.LINEAGE))
+        assertEquals(Outcome.UNTESTED, evaluate(liveDisplay, emptyMap(), null, rom = Rom.EOS))
+    }
+
+    @Test
+    fun sharedTestStaysApplicableWhileOneRequirementApplies() {
+        val recovery = TestCatalog.builtIn.byId.getValue("recovery.boot")
+        assertTrue(recovery.appliesTo(Rom.LINEAGE))
+        assertTrue(recovery.appliesTo(Rom.EOS))
+        assertFalse(recovery.appliesTo(null))
+        assertFalse(TestCatalog.builtIn.byId.getValue("recovery.addons").appliesTo(Rom.EOS))
     }
 
     @Test

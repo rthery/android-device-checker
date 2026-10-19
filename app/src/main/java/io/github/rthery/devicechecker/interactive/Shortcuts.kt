@@ -43,9 +43,18 @@ object Shortcuts {
         )
     }
     val dialer = Shortcut("Open dialer") { listOf(Intent(Intent.ACTION_DIAL)) }
+    val messaging = Shortcut("Open messaging") { listOf(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING)) }
+    val sims = Shortcut("SIM settings") {
+        listOf(Intent("android.settings.MANAGE_ALL_SIM_PROFILES_SETTINGS"), Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS), Intent(Settings.ACTION_WIRELESS_SETTINGS))
+    }
+    val reset = Shortcut("Reset options") { listOf(settingsComponent("com.android.settings.Settings\$ResetDashboardActivity"), Intent(Settings.ACTION_SETTINGS)) }
     val updater = Shortcut("Open Updater") {
         listOf(Intent().setComponent(ComponentName("org.lineageos.updater", "org.lineageos.updater.UpdatesActivity")), Intent(Settings.ACTION_DEVICE_INFO_SETTINGS))
     }
     val batteryUsage = Shortcut("Battery usage") { listOf(Intent(Intent.ACTION_POWER_USAGE_SUMMARY), Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)) }
+    val microg = Shortcut("microG settings") {
+        listOf(Intent().setComponent(ComponentName("com.google.android.gms", "org.microg.gms.ui.SettingsActivity")), Intent(Settings.ACTION_SETTINGS))
+    }
+    val privacy = Shortcut("Privacy settings") { listOf(Intent(Settings.ACTION_PRIVACY_SETTINGS)) }
     val sound = Shortcut("Sound settings") { listOf(Intent(Settings.ACTION_SOUND_SETTINGS)) }
 }
