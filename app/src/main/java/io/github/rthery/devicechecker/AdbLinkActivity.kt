@@ -40,7 +40,11 @@ class AdbLinkActivity : Activity() {
             }
             AdbLinks.post(AdbLink(extras.getString(EXTRA_RUN), extras.getString(EXTRA_TEST), extras.getString(EXTRA_TAB), options))
         }
-        startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        // Reuse the running MainActivity: a second one would leave the first collecting the link.
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+        )
         finish()
     }
 

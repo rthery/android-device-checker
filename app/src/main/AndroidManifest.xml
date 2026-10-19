@@ -47,13 +47,15 @@
             android:exported="false"
             android:launchMode="singleTop" />
 
-        <!-- adb entry point: DUMP is held by adb shell, not by normal apps. -->
+        <!-- adb entry point: DUMP is held by adb shell, not by normal apps. No affinity so it never
+             roots the app's task, where a later link would only bring that task to the front. -->
         <activity
             android:name=".AdbLinkActivity"
             android:excludeFromRecents="true"
             android:exported="true"
             android:noHistory="true"
             android:permission="android.permission.DUMP"
+            android:taskAffinity=""
             android:theme="@android:style/Theme.NoDisplay" />
 
         <!-- One launcher entry per bundled icon; a device pack's theme.icon picks which is enabled. -->
