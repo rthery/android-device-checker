@@ -24,6 +24,8 @@ Download the APK from [Releases](https://github.com/rthery/android-device-checke
 
 With Shizuku connected, every check and every test reads the crash log buffer for the time it ran. Any process crash during it (camera daemon, camera provider, audio HAL, Bluetooth, RIL...) fails it and the crash is attached to the result. `crashes.boot` scans dropbox, which survives `logcat -c` and holds tombstones, app crashes, ANRs, runtime restarts and repeated wtf reports since boot.
 
+Interactive test screens keep the display awake until you leave the test, so the normal screen timeout cannot interrupt camera, audio or sensor work. This does not prevent manually locking the phone.
+
 The stress tests target bugs that only show up with fast or repeated use:
 
 - Camera switching: random camera, then a photo, a 0.5 to 3 s video, a close mid-recording, autofocus churn, or a photo, video and photo switch on one open camera, with 0.1 to 0.8 s gaps. It checks first frame latency, that every clip has audio missing from at most 300 ms of its video, and a stable camera list, then reopens every camera.

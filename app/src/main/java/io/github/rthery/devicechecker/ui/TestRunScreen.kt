@@ -27,10 +27,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
@@ -44,6 +46,14 @@ fun TestRunScreen(viewModel: MainViewModel, testId: String, onDone: () -> Unit) 
     val catalog = viewModel.catalog.collectAsStateWithLifecycle().value
     val test = catalog.interactiveById[testId] ?: return onDone()
     val activity = LocalActivity.current as ComponentActivity
+    val view = LocalView.current
+    DisposableEffect(view) {
+        // Interactive tests do not publish automatic-run progress. Keep their visible
+        // screen awake too, without changing the automatic runner's window flags.
+        val previous = view.keepScreenOn
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = previous }
+    }
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
     val scope = remember(testId, profile) {
