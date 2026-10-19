@@ -76,8 +76,8 @@ private const val THUMBNAIL_PX = 240
 val cameraTests = listOf(
     InteractiveTest("camera.capture", "Photo on every camera", "Opens each camera, takes a photo and checks it is not blank.") { PhotoTest(it) },
     InteractiveTest(
-        "video.record", "Video recording",
-        "Records a short clip on the first rear and front camera from the moment the camera opens, checks the file, and measures how long " +
+        "video.record", "Video on every camera",
+        "Records a short clip with sound on every accessible camera from the moment the camera opens, checks the file, and measures how long " +
             "exposure takes to settle and how often brightness swings afterwards (flicker). To compare with stock, film the same scene in the same light on both.",
     ) { VideoTest(it) },
 )
@@ -412,13 +412,7 @@ private fun VideoTest(scope: TestScope) {
 @Composable
 private fun VideoContent(scope: TestScope) {
     val context = scope.activity
-    val targets = remember {
-        val all = discoverCameras(context.getSystemService(CameraManager::class.java)).filterNot { it.hidden }
-        listOfNotNull(
-            all.firstOrNull { it.facing == CameraCharacteristics.LENS_FACING_BACK },
-            all.firstOrNull { it.facing == CameraCharacteristics.LENS_FACING_FRONT },
-        )
-    }
+    val targets = remember { discoverCameras(context.getSystemService(CameraManager::class.java)) }
     val clips = remember { mutableStateListOf<Clip>() }
     var running by remember { mutableStateOf(false) }
     val coroutines = rememberCoroutineScope()

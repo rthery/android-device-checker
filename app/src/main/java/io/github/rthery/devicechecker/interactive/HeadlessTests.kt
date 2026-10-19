@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.graphics.Bitmap
-import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.location.GnssStatus
 import android.location.Location
@@ -48,7 +47,7 @@ fun foregroundCommand(ids: String) = "adb shell am start -n io.github.rthery.dev
  */
 val headlessTests = listOf(
     Check("camera.capture", "Photo on every camera") { photoHeadless() },
-    Check("video.record", "Video recording") { videoHeadless() },
+    Check("video.record", "Video on every camera") { videoHeadless() },
     Check("hw.camera.hal", "Camera HAL and API coverage") {
         preflight("hw.camera.hal", listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) ?: runCameraHalCoverage()
     },
@@ -110,11 +109,7 @@ private const val SAME_SCENE_NOTE =
 private suspend fun CheckContext.videoHeadless(): CheckResult {
     preflight("video.record", listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))?.let { return it }
     val dir = artifactsFor("video.record")
-    val all = discoverCameras(context.getSystemService(CameraManager::class.java)).filterNot { it.hidden }
-    val targets = listOfNotNull(
-        all.firstOrNull { it.facing == CameraCharacteristics.LENS_FACING_BACK },
-        all.firstOrNull { it.facing == CameraCharacteristics.LENS_FACING_FRONT },
-    )
+    val targets = discoverCameras(context.getSystemService(CameraManager::class.java))
     if (targets.isEmpty()) return fail("No camera exposed")
     val artifacts = mutableListOf<String>()
     val clips = targets.map { target ->
