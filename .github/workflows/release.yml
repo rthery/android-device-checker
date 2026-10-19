@@ -24,17 +24,25 @@ jobs:
       - name: Install SDK packages
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.1.0" > /dev/null
 
-      - name: Compute version
+      - name: Check tag matches version
         id: version
         run: |
-          name="${GITHUB_REF_NAME#v}"
-          if [[ ! "$name" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            echo "Tag $GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH" >&2
+          name=$(sed -n 's/^ *versionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
+          code=$(sed -n 's/^ *versionCode = \([0-9]*\)$/\1/p' app/build.gradle.kts)
+          if [[ "$GITHUB_REF_NAME" != "v$name" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match versionName $name" >&2
             exit 1
           fi
-          code=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          if [[ ! "$name" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "versionName $name is not MAJOR.MINOR.PATCH" >&2
+            exit 1
+          fi
+          expected=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          if [[ "$code" != "$expected" ]]; then
+            echo "versionCode $code should be $expected for $name" >&2
+            exit 1
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Decode keystore
         env:
@@ -47,10 +55,7 @@ jobs:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: >
-          ./gradlew assembleRelease
-          -PversionName=${{ steps.version.outputs.name }}
-          -PversionCode=${{ steps.version.outputs.code }}
+        run: ./gradlew assembleRelease
 
       - name: Verify signature
         run: |

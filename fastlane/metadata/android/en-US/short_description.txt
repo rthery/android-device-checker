@@ -1,0 +1,1 @@
+Test a ROM on real hardware against a device support checklist

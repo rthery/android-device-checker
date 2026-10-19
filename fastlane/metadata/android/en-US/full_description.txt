@@ -1,0 +1,24 @@
+Android Device Checker tests an Android build, custom ROM or stock, on real hardware against a device support checklist, and saves Markdown and JSON reports.
+
+The checklist has 86 requirements paraphrased from the LineageOS Device Support Requirements (CC BY 3.0). LineageOS-only items count as N/A on other ROMs. The app is not affiliated with LineageOS or Google.
+
+<b>What it tests</b>
+<ul>
+<li>Automatic checks: SELinux, verity, su, CPU governors and I/O schedulers, Wi-Fi and Bluetooth MACs, resolution, Wi-Fi and mobile data, SD card read/write, codec encode/decode round trips.</li>
+<li>Assisted checks: clocks, charging current, Bluetooth codecs and the sensor list, to compare with stock.</li>
+<li>Interactive tests: tones on every audio output, mic levels, a photo per camera, video clips, GPS fix, NFC, fingerprint, Bluetooth scan, sensors and IR. Anything only a person can judge ends with a yes/no from the tester.</li>
+<li>Guided steps for USB modes, tethering and recovery, with buttons that open the right settings screen.</li>
+<li>Stress tests for camera switching and audio churn, to catch bugs that only show up with fast, repeated use.</li>
+</ul>
+
+<b>Also</b>
+<ul>
+<li>Crash watcher: with Shizuku, any process crash during a check or test (camera, audio HAL, Bluetooth, RIL) fails it and is attached to the result.</li>
+<li>Stock comparison: capture what the stock ROM reports, import it on the custom ROM, and checks compare against it.</li>
+<li>Device packs: JSON files a ROM maintainer ships to add tests, stock values, waivers and theme hints. Packs are data only, and every command they can run is shown for approval first.</li>
+<li>adb control for scripts and LLM agents: run checks, record verdicts, capture and import stock data without touching the screen.</li>
+</ul>
+
+Shizuku is optional. It unlocks reads the app uid is denied (Bluetooth MAC, some sysfs nodes) and the crash watcher.
+
+The app uses the network only for its connectivity check, a request to connectivitycheck.gstatic.com (the endpoint Android itself uses to detect captive portals). It has no ads, analytics or trackers.

@@ -16,8 +16,13 @@ android {
         applicationId = "io.github.rthery.devicechecker"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
-        versionName = providers.gradleProperty("versionName").orNull ?: "0.1.0"
+        versionCode = 100
+        versionName = "0.1.0"
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     val releaseKeystore = providers.environmentVariable("SIGNING_KEYSTORE_PATH").orNull

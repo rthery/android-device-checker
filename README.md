@@ -174,7 +174,7 @@ Needs JDK 17 or later and the Android SDK (platform 36), with `sdk.dir` in `loca
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-`./gradlew assembleRelease` builds an unsigned APK unless `SIGNING_KEYSTORE_PATH`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD` are set. Pushing a `vMAJOR.MINOR.PATCH` tag builds the signed APK in GitHub Actions and publishes it as a release, with the version name taken from the tag.
+`./gradlew assembleRelease` builds an unsigned APK unless `SIGNING_KEYSTORE_PATH`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD` are set. Pushing a `vMAJOR.MINOR.PATCH` tag builds the signed APK in GitHub Actions and publishes it as a release. The tag must match `versionName` in `app/build.gradle.kts`, and `versionCode` must be `MAJOR * 10000 + MINOR * 100 + PATCH`. Store listing texts and screenshots for F-Droid and IzzyOnDroid live in `fastlane/metadata/android/`, with one `changelogs/<versionCode>.txt` per release.
 
 ## Layout
 

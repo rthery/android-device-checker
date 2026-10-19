@@ -1,0 +1,1 @@
+First release: 86 requirements from the LineageOS device support checklist, with automatic checks, interactive and guided tests, camera and audio stress tests, a crash watcher, stock comparison, device packs, adb control and Markdown/JSON reports.
