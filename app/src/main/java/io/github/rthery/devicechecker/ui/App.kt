@@ -1,6 +1,5 @@
 package io.github.rthery.devicechecker.ui
 
-import androidx.compose.runtime.LaunchedEffect
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -16,24 +15,26 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
 import io.github.rthery.devicechecker.pack.ui.PacksScreen
 import io.github.rthery.devicechecker.pack.ui.shapesFor
 import io.github.rthery.devicechecker.pack.ui.withHints
-import androidx.compose.material3.Typography
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 enum class Tab(val label: String, val icon: ImageVector) {
     TESTS("Tests", Icons.AutoMirrored.Filled.List),
@@ -65,6 +66,7 @@ fun App(viewModel: MainViewModel) {
         viewModel.consumeDeepLink()
     }
     val testsListState = rememberLazyListState()
+    val tabStates = rememberSaveableStateHolder()
 
     MaterialTheme(colorScheme = colors, shapes = shapesFor(hints), typography = Typography().withHints(hints)) {
         val test = activeTest
@@ -114,13 +116,15 @@ fun App(viewModel: MainViewModel) {
                 ) { padding ->
                     val content = Modifier.padding(padding)
                     when (tab) {
-                        Tab.TESTS -> TestsTab(
-                            viewModel,
-                            testsListState,
-                            onOpenTest = { activeTest = it },
-                            onOpenDevice = { tab = Tab.DEVICE },
-                            modifier = content,
-                        )
+                        Tab.TESTS -> tabStates.SaveableStateProvider("tests") {
+                            TestsTab(
+                                viewModel,
+                                testsListState,
+                                onOpenTest = { activeTest = it },
+                                onOpenDevice = { tab = Tab.DEVICE },
+                                modifier = content,
+                            )
+                        }
                         Tab.REPORT -> ReportTab(viewModel, modifier = content)
                         Tab.DEVICE -> DeviceTab(
                             viewModel,
