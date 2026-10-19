@@ -79,7 +79,6 @@ val stressTests = listOf(
     ) { AudioStressTest(it) },
 )
 
-/** MODE_SWITCH keeps the camera open and reconfigures photo -> video -> photo, like a camera app switching modes. */
 /** Random order, but every block of entries.size steps runs each action once, so short runs still cover all of them. */
 private fun <T> shuffledBlocks(entries: List<T>, count: Int): List<T> =
     generateSequence { entries.shuffled() }.flatten().take(count).toList()
@@ -130,6 +129,7 @@ internal suspend fun runAudioStress(audio: AudioManager, iterations: Int, onLine
     }
 }
 
+/** MODE_SWITCH keeps the camera open and reconfigures photo -> video -> photo, like a camera app switching modes. */
 private enum class CameraAction { PHOTO, VIDEO, CLOSE_WHILE_RECORDING, AF_CHURN, MODE_SWITCH }
 
 /** Camera opened with a callback that also records errors raised after the open. */
@@ -180,8 +180,10 @@ private suspend fun awaitImage(reader: ImageReader, thread: CameraThread, timeou
         }
     } ?: false
 
-/** One camera step. Returns a short outcome line; throws on failure. */
-/** [keep] takes over a recorded clip so its exposure can be measured after the run, off the timed steps. */
+/**
+ * One camera step. Returns a short outcome line; throws on failure.
+ * [keep] takes over a recorded clip so its exposure can be measured after the run, off the timed steps.
+ */
 private suspend fun cameraStep(
     context: Context,
     manager: CameraManager,

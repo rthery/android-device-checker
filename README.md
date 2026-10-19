@@ -16,6 +16,10 @@ The app shows all of these as one list of tests, grouped by category, each with 
 
 Anything a machine cannot judge (how a recording sounds, whether a photo or clip looks right, where the fingerprint prompt says the sensor is) needs a tester answer before the test can be saved.
 
+## Install
+
+Download the APK from [Releases](https://github.com/rthery/android-device-checker/releases) and install it, or run `adb install` with it. Releases are signed with the project's release key, while a local debug build is signed with your machine's debug key: uninstall one before installing the other.
+
 ## Crash watcher and stress tests
 
 With Shizuku connected, every check and every test reads the crash log buffer for the time it ran. Any process crash during it (camera daemon, camera provider, audio HAL, Bluetooth, RIL...) fails it and the crash is attached to the result. `crashes.boot` scans dropbox, which survives `logcat -c` and holds tombstones, app crashes, ANRs, runtime restarts and repeated wtf reports since boot.
@@ -169,6 +173,8 @@ Needs JDK 17 or later and the Android SDK (platform 36), with `sdk.dir` in `loca
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+`./gradlew assembleRelease` builds an unsigned APK unless `SIGNING_KEYSTORE_PATH`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD` are set. Pushing a `vMAJOR.MINOR.PATCH` tag builds the signed APK in GitHub Actions and publishes it as a release, with the version name taken from the tag.
 
 ## Layout
 
