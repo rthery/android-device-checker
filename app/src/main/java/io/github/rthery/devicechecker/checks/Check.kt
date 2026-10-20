@@ -51,6 +51,9 @@ class CheckContext(
 
     val crashWatcher = CrashWatcher(privilegedShell)
 
+    /** The last command [read] could not run as the app or through Shizuku. */
+    private var blockedCommand: String? = null
+
     suspend fun prop(name: String): String = AppShell.exec("getprop $name").output.trim()
 
     /** Runs as the app first, then through Shizuku when the app uid is not allowed to. */
@@ -61,13 +64,18 @@ class CheckContext(
         }
         val privileged = privilegedShell ?: return ShellRead(null, Access.NONE)
         val asShell = privileged.exec(command)
-        return if (asShell.succeeded && accept(asShell.output)) ShellRead(asShell.output, Access.SHIZUKU) else ShellRead(null, Access.NONE)
+        if (asShell.succeeded && accept(asShell.output)) return ShellRead(asShell.output, Access.SHIZUKU)
+        blockedCommand = command
+        return ShellRead(null, Access.NONE)
     }
 
-    /** Shadows the top-level [needsShell]: with Shizuku connected, asking for it again would not help. */
-    fun needsShell(summary: String = NEEDS_SHELL_SUMMARY): CheckResult =
+    /**
+     * Shadows the top-level [needsShell]: with Shizuku connected, asking for it again would not help.
+     * [manualCommand] is what a tester runs as root instead; it defaults to the last blocked [read].
+     */
+    fun needsShell(summary: String = NEEDS_SHELL_SUMMARY, manualCommand: String? = blockedCommand): CheckResult =
         if (privilegedShell == null) CheckResult(CheckStatus.NEEDS_SHELL, summary, access = Access.NONE)
-        else warn("Not readable even through Shizuku: this build's SELinux policy blocks adb shell from it", access = Access.NONE)
+        else blockedForShell(manualCommand)
 
     /** Shizuku only; null when it is not connected. */
     suspend fun execPrivileged(command: String): ShellOutput? = privilegedShell?.exec(command)
@@ -110,6 +118,19 @@ fun fail(summary: String, details: String = "", access: Access = Access.APP) = C
 fun warn(summary: String, details: String = "", access: Access = Access.APP) = CheckResult(CheckStatus.WARN, summary, details, access)
 fun info(summary: String, details: String = "", access: Access = Access.APP) = CheckResult(CheckStatus.INFO, summary, details, access)
 fun notApplicable(summary: String) = CheckResult(CheckStatus.NOT_APPLICABLE, summary)
+/**
+ * SELinux keeps the shell domain (and so Shizuku) out of some files on enforcing builds. That is the ROM's
+ * policy working, so a tester confirms the value as root instead of the check failing.
+ */
+fun blockedForShell(manualCommand: String?): CheckResult = info(
+    "Can't verify from the app: SELinux keeps adb shell out, as it should. Confirm as root and set the verdict with SET_RESULT. " +
+        "On a userdebug build: adb root, then " + (manualCommand?.let { "adb shell ${shellQuoted(it)}" } ?: "the check's command in adb shell"),
+    access = Access.NONE,
+)
+
+/** Quotes for the host shell so globs and pipes reach the device shell untouched. */
+internal fun shellQuoted(command: String): String = "'${command.replace("'", "'\\''")}'"
+
 private const val NEEDS_SHELL_SUMMARY = "The app uid cannot read this. Connect Shizuku and run again."
 
 fun needsShell(summary: String = NEEDS_SHELL_SUMMARY) =

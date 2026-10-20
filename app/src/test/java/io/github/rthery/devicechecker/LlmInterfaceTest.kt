@@ -1,12 +1,16 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
+import io.github.rthery.devicechecker.checks.blockedForShell
+import io.github.rthery.devicechecker.data.Outcome
 import io.github.rthery.devicechecker.data.StockSnapshot
 import io.github.rthery.devicechecker.data.TestCatalog
 import io.github.rthery.devicechecker.data.TestState
 import io.github.rthery.devicechecker.data.buildCatalog
+import io.github.rthery.devicechecker.data.evaluate
 import io.github.rthery.devicechecker.data.nextSteps
 import io.github.rthery.devicechecker.data.stateOf
 import io.github.rthery.devicechecker.data.stockJson
@@ -52,6 +56,17 @@ class LlmInterfaceTest {
         assertTrue(review.needsHuman && review.why.contains("camera0.jpg") && review.command!!.contains("SET_RESULT"))
         assertTrue(steps.any { it.id == "selinux" && it.why.contains("Permissive") })
         assertEquals(TestState.FAIL, states["selinux"])
+    }
+
+    @Test
+    fun selinuxBlockedReadAsksForARootCheckInsteadOfWarning() {
+        val results = mapOf("kernel.ioschedulers" to blockedForShell("cat /sys/block/*/queue/scheduler"))
+        val states = tests.associate { it.id to stateOf(it, results, emptyMap(), rom = Rom.LINEAGE, run = null) }
+        assertEquals(TestState.NEEDS, states["kernel.ioschedulers"])
+        assertEquals(Outcome.TO_VERIFY, evaluate(RequirementCatalog.byId.getValue("sw.kernel.iosched"), results, null, Rom.LINEAGE))
+        val step = nextSteps(tests, states, results, DeviceProfile(), shizukuReady = true, hasStock = true).single { it.id == "kernel.ioschedulers" }
+        assertTrue(step.needsHuman && step.command!!.contains("SET_RESULT --es test kernel.ioschedulers"))
+        assertTrue(step.why.contains("adb root, then adb shell 'cat /sys/block/*/queue/scheduler'"))
     }
 
     @Test

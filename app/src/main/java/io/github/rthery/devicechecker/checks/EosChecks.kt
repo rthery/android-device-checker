@@ -8,6 +8,9 @@ import io.github.rthery.devicechecker.catalog.Rom
 private val EOS_CORE_APPS = listOf("foundation.e.apps", "foundation.e.advancedprivacy")
 private const val EOS_BROWSER = "foundation.e.browser"
 private const val GMS_PACKAGE = "com.google.android.gms"
+
+/** Declared by every microG GmsCore whatever its label (/e/OS 4.4 ships it as "App Compatibility Services") or signer. */
+internal val MICROG_PERMISSIONS = listOf("org.microg.gms.EXTENDED_ACCESS", "org.microg.gms.PROVISION", "org.microg.gms.STATUS_BROADCAST")
 private val GOOGLE_DNS = setOf("8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844")
 
 val eosChecks = listOf(
@@ -25,13 +28,19 @@ val eosChecks = listOf(
 
     Check("eos.microg", "microG services") {
         if (rom != Rom.EOS) return@Check notApplicable("Not an /e/OS build")
-        val label = try {
-            context.packageManager.getApplicationInfo(GMS_PACKAGE, 0).loadLabel(context.packageManager).toString()
+        val packageManager = context.packageManager
+        val gms = try {
+            packageManager.getPackageInfo(GMS_PACKAGE, 0)
         } catch (_: PackageManager.NameNotFoundException) {
             return@Check fail("$GMS_PACKAGE is not installed")
         }
-        if (label.contains("microG", ignoreCase = true)) info("$label is installed. Run its self-check.")
-        else warn("$GMS_PACKAGE is installed but is labelled \"$label\", not microG")
+        val label = gms.applicationInfo?.loadLabel(packageManager)?.toString().orEmpty()
+        val details = "Label: $label\nVersion: ${gms.versionName}"
+        val microg = isMicrog { permission ->
+            runCatching { packageManager.getPermissionInfo(permission, 0).packageName }.getOrNull()
+        }
+        if (microg) info("microG ${gms.versionName} is installed. Run its self-check.", details)
+        else warn("$GMS_PACKAGE is installed but declares no microG permission: it is not microG", details)
     },
 
     Check("eos.dns", "Default DNS") {
@@ -70,3 +79,6 @@ val eosChecks = listOf(
         }
     },
 )
+
+/** [permissionOwner] returns the package that declares a permission, or null when none does. */
+internal fun isMicrog(permissionOwner: (String) -> String?): Boolean = MICROG_PERMISSIONS.any { permissionOwner(it) == GMS_PACKAGE }

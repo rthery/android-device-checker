@@ -14,7 +14,9 @@ val systemHealthChecks = listOf(
         val watcher = crashWatcher
         if (!watcher.available) return@Check needsShell("Reading other processes' crashes needs Shizuku.")
         val boot = CrashWatcher.bootTimeMillis()
-        val entries = watcher.dropboxSince(boot)
+        val all = watcher.dropbox()
+        val entries = all.fromCurrentBoot(boot, CrashWatcher.currentFingerprints(prop("ro.build.fingerprint")))
+        val olderBuilds = all.count { it.timeMillis >= boot } - entries.size
         val crashes = entries.filterNot { it.isWtf }.sortedBy { it.timeMillis }.fold(mutableListOf<DropboxEntry>()) { kept, entry ->
             val duplicate = kept.lastOrNull { it.process == entry.process }?.let { entry.timeMillis - it.timeMillis <= SAME_CRASH_WINDOW_MS } == true
             if (!duplicate) kept += entry
@@ -35,6 +37,7 @@ val systemHealthChecks = listOf(
                 appendLine("wtf reports:")
                 wtfByOrigin.take(5).forEach { (origin, count) -> appendLine("${count}x $origin (${"%.0f".format(count / hoursUp)}/h)") }
             }
+            if (olderBuilds > 0) appendLine("Ignored $olderBuilds entries logged by another build fingerprint.")
         }.trim()
         val loops = byProcess.filter { it.second.size >= CRASH_LOOP_THRESHOLD }.map { it.first }
         val floods = wtfByOrigin.filter { it.second / hoursUp >= WTF_FLOOD_PER_HOUR }.map { it.first }

@@ -1,6 +1,7 @@
 package io.github.rthery.devicechecker.checks
 
-import io.github.rthery.devicechecker.shell.AppShell
+import android.os.Build
+import android.os.SystemClock
 import io.github.rthery.devicechecker.shell.Shell
 import java.time.Instant
 import java.time.ZoneId
@@ -42,21 +43,22 @@ class CrashWatcher(private val privilegedShell: Shell?) {
         return parseCrashLog(shell.exec("logcat -b crash -d -v threadtime").output)
     }
 
-    /** Dropbox keeps crashes across logcat clears and reboots; entries are filtered to those after [startMillis]. */
-    suspend fun dropboxSince(startMillis: Long): List<DropboxEntry> {
+    /** Dropbox keeps crashes across logcat clears, reboots and OTAs, so it holds entries from older builds too. */
+    suspend fun dropbox(): List<DropboxEntry> {
         val shell = privilegedShell ?: return emptyList()
         val tags = DROPBOX_CRASH_TAGS.joinToString(" ")
         val output = shell.exec(
-            "for t in $tags; do dumpsys dropbox --print \$t | grep -E '^20[0-9-]+ [0-9:]+ [A-Za-z_]+ \\(|^Cmdline:|^Process:|^Subject:|^Abort message:'; done"
+            "for t in $tags; do dumpsys dropbox --print \$t | grep -E '^20[0-9-]+ [0-9:]+ [A-Za-z_]+ \\(|^Cmdline:|^Process:|^Subject:|^Abort message:|^Build:|^Build fingerprint:'; done"
         ).output
-        return parseDropbox(output).filter { it.timeMillis >= startMillis }
+        return parseDropbox(output)
     }
 
     companion object {
-        suspend fun bootTimeMillis(): Long {
-            val uptimeSeconds = AppShell.exec("cat /proc/uptime").output.substringBefore(' ').toDoubleOrNull() ?: return 0
-            return System.currentTimeMillis() - (uptimeSeconds * 1000).toLong()
-        }
+        /** Wall-clock time of boot; /proc/uptime is not readable by apps on every build. */
+        fun bootTimeMillis(): Long = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
+        /** Build.FINGERPRINT can differ from ro.build.fingerprint when a ROM spoofs it, and dropbox may log either. */
+        fun currentFingerprints(propFingerprint: String): Set<String> = setOfNotNull(Build.FINGERPRINT, propFingerprint).filter { it.isNotBlank() }.toSet()
     }
 }
 
@@ -66,9 +68,21 @@ val DROPBOX_CRASH_TAGS = listOf(
     "system_server_wtf", "system_app_wtf",
 )
 
-data class DropboxEntry(val timeMillis: Long, val time: String, val tag: String, val process: String, val reason: String) {
+data class DropboxEntry(
+    val timeMillis: Long,
+    val time: String,
+    val tag: String,
+    val process: String,
+    val reason: String,
+    /** Fingerprint of the build that logged it, when the entry records one. */
+    val build: String? = null,
+) {
     val isWtf get() = tag.endsWith("_wtf")
 }
+
+/** Entries logged since [bootMillis] by the running build; entries without a fingerprint are judged by time alone. */
+fun List<DropboxEntry>.fromCurrentBoot(bootMillis: Long, fingerprints: Set<String>): List<DropboxEntry> =
+    filter { it.timeMillis >= bootMillis && (it.build == null || fingerprints.isEmpty() || it.build in fingerprints) }
 
 private val DROPBOX_HEADER = Regex("""^(20\d\d-\d\d-\d\d \d\d:\d\d:\d\d) ([A-Za-z_]+) \(""")
 private val DROPBOX_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
@@ -78,10 +92,11 @@ fun parseDropbox(output: String): List<DropboxEntry> {
     var header: MatchResult? = null
     var process = "?"
     var reason = ""
+    var build: String? = null
     fun flush() {
         val h = header ?: return
         val millis = runCatching { Instant.from(DROPBOX_TIME.parse(h.groupValues[1])).toEpochMilli() }.getOrDefault(0)
-        entries += DropboxEntry(millis, h.groupValues[1], h.groupValues[2], process, reason)
+        entries += DropboxEntry(millis, h.groupValues[1], h.groupValues[2], process, reason, build)
     }
     for (line in output.lines()) {
         val match = DROPBOX_HEADER.find(line)
@@ -91,7 +106,9 @@ fun parseDropbox(output: String): List<DropboxEntry> {
                 header = match
                 process = "?"
                 reason = ""
+                build = null
             }
+            build == null && (line.startsWith("Build:") || line.startsWith("Build fingerprint:")) -> build = line.substringAfter(':').trim().trim('\'').ifEmpty { null }
             line.startsWith("Cmdline:") || line.startsWith("Process:") -> process = line.substringAfter(':').trim().substringBefore(',')
             line.startsWith("Abort message:") -> reason = line.substringAfter(':').trim().trim('\'')
             line.startsWith("Subject:") && reason.isEmpty() -> reason = line.substringAfter(':').trim()

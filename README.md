@@ -28,7 +28,7 @@ Download the APK from [Releases](https://github.com/rthery/android-device-checke
 
 ## Crash watcher and stress tests
 
-With Shizuku connected, every check and every test reads the crash log buffer for the time it ran. Any process crash during it (camera daemon, camera provider, audio HAL, Bluetooth, RIL...) fails it and the crash is attached to the result. `crashes.boot` scans dropbox, which survives `logcat -c` and holds tombstones, app crashes, ANRs, runtime restarts and repeated wtf reports since boot.
+With Shizuku connected, every check and every test reads the crash log buffer for the time it ran. Any process crash during it (camera daemon, camera provider, audio HAL, Bluetooth, RIL...) fails it and the crash is attached to the result. `crashes.boot` scans dropbox, which survives `logcat -c` and holds tombstones, app crashes, ANRs, runtime restarts and repeated wtf reports. It counts only entries logged since boot by the running build fingerprint, so crashes from before an OTA do not count.
 
 Interactive test screens keep the display awake until you leave the test, so the normal screen timeout cannot interrupt camera, audio or sensor work. This does not prevent manually locking the phone.
 
@@ -44,7 +44,7 @@ Many checks compare the build with stock: MAC addresses, resolution, cameras, se
 
 ## Shizuku
 
-Optional. Some reads (Bluetooth MAC, and sysfs nodes on enforcing builds) are denied to the app uid. With [Shizuku](https://shizuku.rikka.app/) running and the permission granted, those commands run through a Shizuku user service with the shell uid. Without it they show "Needs Shizuku". When Shizuku is connected and the build's SELinux policy still blocks adb shell (common on stock ROMs), the check warns instead.
+Optional. Some reads (Bluetooth MAC, and sysfs nodes on enforcing builds) are denied to the app uid. With [Shizuku](https://shizuku.rikka.app/) running and the permission granted, those commands run through a Shizuku user service with the shell uid. Without it they show "Needs Shizuku". When Shizuku is connected and the build's SELinux policy still blocks adb shell (common on stock ROMs, and correct policy on enforcing custom ROMs), the check asks you to verify instead: its summary gives the command to run after `adb root` on a userdebug build, and you record the verdict with `SET_RESULT`.
 
 ## Device packs
 

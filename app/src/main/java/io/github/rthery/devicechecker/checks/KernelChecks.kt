@@ -54,7 +54,7 @@ val kernelChecks = listOf(
 
     Check("kernel.ioschedulers", "I/O schedulers") {
         val read = read(IO_SCHEDULER_COMMAND, ::hasSchedulerLines)
-        val output = read.output ?: return@Check needsShell()
+        val output = read.output ?: return@Check needsShell(manualCommand = "cat /sys/block/*/queue/scheduler")
         val perDevice = output.lines()
             .filter(::hasSchedulerLines)
             .mapNotNull { line -> line.split(":", limit = 2).takeIf { it.size == 2 } }

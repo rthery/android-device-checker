@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.checks.fromCurrentBoot
 import io.github.rthery.devicechecker.checks.parseCrashLog
 import io.github.rthery.devicechecker.checks.parseDropbox
 import org.junit.Assert.assertEquals
@@ -58,5 +59,56 @@ class CrashLogParserTest {
         assertEquals("assertion failed - COMMAND_DISALLOWED", entries[1].reason)
         assertEquals(true, entries[2].isWtf)
         assertEquals("TcpSocketTracker", entries[2].reason)
+    }
+
+    private val previousBuild = "google/bullhead/bullhead:13/TQ3A.230901.001/eng.romain.20261012.101500:userdebug/test-keys"
+    private val currentBuild = "google/bullhead/bullhead:13/TQ3A.230901.001/eng.romain.20261019.221000:userdebug/test-keys"
+
+    /** The browser crash-looped on the previous build; after the OTA dropbox still holds those entries. */
+    private val dropboxAcrossOta = """
+        2026-10-20 09:10:01 data_app_crash (text, 2210 bytes)
+        Process: foundation.e.browser
+        Build: $previousBuild
+        2026-10-20 09:10:07 data_app_crash (text, 2210 bytes)
+        Process: foundation.e.browser
+        Build: $previousBuild
+        2026-10-20 09:10:15 data_app_crash (text, 2210 bytes)
+        Process: foundation.e.browser
+        Build: $previousBuild
+        2026-10-20 09:12:30 SYSTEM_TOMBSTONE (compressed text, 15176 bytes)
+        Build fingerprint: '$previousBuild'
+        Cmdline: /vendor/bin/slim_daemon
+        2026-10-20 10:05:44 data_app_crash (text, 1980 bytes)
+        Process: foundation.e.apps
+        Build: $currentBuild
+        2026-10-20 10:06:02 SYSTEM_TOMBSTONE (compressed text, 15389 bytes)
+        Build fingerprint: '$currentBuild'
+        Cmdline: com.android.bluetooth
+        2026-10-20 10:07:00 system_app_wtf (compressed text, 989 bytes)
+        Process: com.android.networkstack.process
+        Subject: TcpSocketTracker
+    """.trimIndent()
+
+    @Test
+    fun readsTheBuildOfEachDropboxEntry() {
+        val entries = parseDropbox(dropboxAcrossOta)
+        assertEquals(previousBuild, entries[0].build)
+        assertEquals(previousBuild, entries[3].build)
+        assertEquals(currentBuild, entries[5].build)
+        assertEquals(null, entries[6].build)
+    }
+
+    @Test
+    fun keepsOnlyEntriesFromTheRunningBuildAndBoot() {
+        val entries = parseDropbox(dropboxAcrossOta)
+        val kept = entries.fromCurrentBoot(bootMillis = entries[0].timeMillis, fingerprints = setOf(currentBuild))
+        assertEquals(listOf("foundation.e.apps", "com.android.bluetooth", "com.android.networkstack.process"), kept.map { it.process })
+    }
+
+    @Test
+    fun dropsEntriesLoggedBeforeBoot() {
+        val entries = parseDropbox(dropboxAcrossOta)
+        val kept = entries.fromCurrentBoot(bootMillis = entries[5].timeMillis, fingerprints = setOf(currentBuild))
+        assertEquals(listOf("com.android.bluetooth", "com.android.networkstack.process"), kept.map { it.process })
     }
 }

@@ -16,7 +16,7 @@ val identityChecks = listOf(
     Check("wifi.mac", "Wi-Fi MAC address") {
         if (!profile.stockHasWifi) return@Check notApplicable("Stock has no Wi-Fi")
         val read = read(WIFI_MAC_COMMAND) { extractMac(it) != null }
-        val mac = read.output?.let(::extractMac) ?: return@Check needsShell()
+        val mac = read.output?.let(::extractMac) ?: return@Check needsShell(manualCommand = "cat /sys/class/net/wlan0/address")
         compareMac(mac, profile.stockWifiMac, read.access)
     },
 

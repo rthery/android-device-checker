@@ -16,7 +16,7 @@ val CHECK_HOW: Map<String, List<String>> = mapOf(
     "browser.jelly" to listOf("Checks that org.lineageos.jelly is installed"),
     "eos.apps" to listOf("Checks that App Lounge and Advanced Privacy are installed"),
     "eos.browser" to listOf("Checks that foundation.e.browser is installed"),
-    "eos.microg" to listOf("Checks that com.google.android.gms is installed and is labelled microG"),
+    "eos.microg" to listOf("Checks that com.google.android.gms is installed and declares the org.microg.gms permissions"),
     "eos.dns" to listOf("Reads the DNS servers of the active network and the private DNS setting", "Flags Google's public DNS servers"),
     "eos.verifiedboot" to listOf("Reads the bootloader lock, verified boot and verity properties", "Expects a locked bootloader to boot green or yellow with verity on"),
     "livedisplay" to listOf("Lists binder and HIDL services through Shizuku", "Looks for vendor.lineage.livedisplay"),
