@@ -40,7 +40,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.checks.CheckStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -358,7 +361,7 @@ internal fun inspectClipTracks(file: File): String {
 
 @Composable
 private fun CameraStressTest(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), "The stress test records video, so it needs the camera and microphone.") {
+    RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), stringResource(R.string.stress_camera_permission)) {
         CameraStressContent(scope)
     }
 }
@@ -376,10 +379,10 @@ private fun CameraStressContent(scope: TestScope) {
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Leave the phone on a table. Each step opens a random camera and takes a photo, records 0.5 to 3 s, closes the camera mid-recording or churns autofocus, with 0.1 to 0.8 s between steps. Then every camera is reopened once.")
+        Instructions(stringResource(R.string.stress_camera_instructions))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ITERATION_CHOICES.forEach { count ->
-                FilterChip(selected = iterations == count, enabled = !running, onClick = { iterations = count }, label = { Text("$count steps") })
+                FilterChip(selected = iterations == count, enabled = !running, onClick = { iterations = count }, label = { Text(pluralStringResource(R.plurals.stress_steps, count, count)) })
             }
         }
         Button(enabled = !running, onClick = {
@@ -397,14 +400,14 @@ private fun CameraStressContent(scope: TestScope) {
                 running = false
                 finished = true
             }
-        }) { Text(if (running) "Running $done/$iterations..." else "Start") }
+        }) { Text(if (running) stringResource(R.string.stress_running, done, iterations) else stringResource(R.string.stress_start)) }
         if (running) LinearProgressIndicator(progress = { done.toFloat() / iterations }, modifier = Modifier.fillMaxWidth())
         val failures = results.lines.count { it.first == CheckStatus.FAIL }
-        if (log.isNotEmpty()) Text("$failures failure(s) so far", color = if (failures > 0) MaterialTheme.colorScheme.error else Color.Unspecified)
+        if (log.isNotEmpty()) Text(pluralStringResource(R.plurals.stress_failures_so_far, failures, failures), color = if (failures > 0) MaterialTheme.colorScheme.error else Color.Unspecified)
         log.take(12).forEach { Mono(it) }
         if (finished) {
             Button(onClick = { scope.finish(results.toResult("$iterations steps and a reopen of every camera without errors", "No steps ran")) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Save result")
+                Text(stringResource(R.string.save_result))
             }
         }
     }
@@ -412,7 +415,7 @@ private fun CameraStressContent(scope: TestScope) {
 
 @Composable
 private fun AudioStressTest(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.RECORD_AUDIO), "The stress test records from the microphones.") {
+    RequirePermissions(listOf(Manifest.permission.RECORD_AUDIO), stringResource(R.string.stress_audio_permission)) {
         AudioStressContent(scope)
     }
 }
@@ -500,10 +503,10 @@ private fun AudioStressContent(scope: TestScope) {
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Short beeps play on the speaker and earpiece while the mics record. Each step is random, with 0.1 to 0.8 s gaps. A first mic buffer slower than $MAX_FIRST_READ_MS ms fails, since it means the audio HAL is blocking.")
+        Instructions(stringResource(R.string.stress_audio_instructions, MAX_FIRST_READ_MS.toInt()))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ITERATION_CHOICES.forEach { count ->
-                FilterChip(selected = iterations == count, enabled = !running, onClick = { iterations = count }, label = { Text("$count steps") })
+                FilterChip(selected = iterations == count, enabled = !running, onClick = { iterations = count }, label = { Text(pluralStringResource(R.plurals.stress_steps, count, count)) })
             }
         }
         Button(enabled = !running, onClick = {
@@ -521,12 +524,12 @@ private fun AudioStressContent(scope: TestScope) {
                 running = false
                 finished = true
             }
-        }) { Text(if (running) "Running $done/$iterations..." else "Start") }
+        }) { Text(if (running) stringResource(R.string.stress_running, done, iterations) else stringResource(R.string.stress_start)) }
         if (running) LinearProgressIndicator(progress = { done.toFloat() / iterations }, modifier = Modifier.fillMaxWidth())
         log.take(12).forEach { Mono(it) }
         if (finished) {
             Button(onClick = { scope.finish(results.toResult("$iterations audio steps without errors", "No steps ran")) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Save result")
+                Text(stringResource(R.string.save_result))
             }
         }
     }

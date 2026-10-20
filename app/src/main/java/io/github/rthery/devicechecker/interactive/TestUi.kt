@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker.interactive
 
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,7 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
+import io.github.rthery.devicechecker.R
+import io.github.rthery.devicechecker.ui.UiText
+import io.github.rthery.devicechecker.ui.englishContext
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.checks.fail
@@ -49,7 +55,7 @@ fun RequirePermissions(permissions: List<String>, rationale: String, content: @C
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(rationale, style = MaterialTheme.typography.bodyMedium)
-        Button(onClick = { launcher.launch(denied.toTypedArray()) }) { Text("Grant permission") }
+        Button(onClick = { launcher.launch(denied.toTypedArray()) }) { Text(stringResource(R.string.grant_permission)) }
     }
 }
 
@@ -68,13 +74,13 @@ fun ShortcutButton(shortcut: Shortcut) {
     val context = LocalContext.current
     var failed by remember { mutableStateOf(false) }
     Column {
-        OutlinedButton(onClick = { failed = !shortcut.launch(context) }) { Text(shortcut.label) }
-        if (failed) Text("Could not open this screen on this build.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        OutlinedButton(onClick = { failed = !shortcut.launch(context) }) { Text(shortcut.label.resolve()) }
+        if (failed) Text(stringResource(R.string.shortcut_failed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }
 }
 
 @Composable
-fun YesNo(question: String, yes: String = "Yes", no: String = "No", onAnswer: (Boolean) -> Unit) {
+fun YesNo(question: String, yes: String = stringResource(R.string.yes), no: String = stringResource(R.string.no), onAnswer: (Boolean) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(question, style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -84,55 +90,62 @@ fun YesNo(question: String, yes: String = "Yes", no: String = "No", onAnswer: (B
     }
 }
 
-class StepAction(val label: String, val run: suspend TestScope.() -> String)
+/** [run] returns command output, which is saved in the result as is. */
+class StepAction(val label: UiText, val run: suspend TestScope.() -> String) {
+    constructor(@StringRes label: Int, run: suspend TestScope.() -> String) : this(UiText.Res(label), run)
+}
 
 class Step(
-    val text: String,
+    val text: UiText,
     val shortcut: Shortcut? = null,
     val action: StepAction? = null,
-)
+) {
+    constructor(@StringRes text: Int, shortcut: Shortcut? = null, action: StepAction? = null) : this(UiText.Res(text), shortcut, action)
+    constructor(text: String, shortcut: Shortcut? = null, action: StepAction? = null) : this(UiText.Raw(text), shortcut, action)
+}
 
-enum class StepAnswer(val label: String) { PASS("Works"), FAIL("Broken"), SKIP("Can't test") }
+enum class StepAnswer(@StringRes val label: Int) { PASS(R.string.step_works), FAIL(R.string.step_broken), SKIP(R.string.step_cant_test) }
 
 /** One card per step, each answered by the tester. Fails if any step fails. */
 @Composable
-fun GuidedSteps(scope: TestScope, intro: String, steps: List<Step>) {
+fun GuidedSteps(scope: TestScope, intro: UiText, steps: List<Step>) {
+    val english = LocalContext.current.englishContext()
     val answers = remember { mutableStateMapOf<Int, StepAnswer>() }
     val outputs = remember { mutableStateMapOf<Int, String>() }
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions(intro)
+        Instructions(intro.resolve())
         steps.forEachIndexed { index, step ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${index + 1}. ${step.text}", style = MaterialTheme.typography.bodyMedium)
+                    Text("${index + 1}. ${step.text.resolve()}", style = MaterialTheme.typography.bodyMedium)
                     step.shortcut?.let { ShortcutButton(it) }
                     step.action?.let { action ->
                         OutlinedButton(onClick = {
                             coroutines.launch { outputs[index] = runCatching { action.run(scope) }.getOrElse { it.message.orEmpty() } }
-                        }) { Text(action.label) }
+                        }) { Text(action.label.resolve()) }
                     }
                     outputs[index]?.let { Mono(it) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StepAnswer.entries.forEach { answer ->
-                            FilterChip(selected = answers[index] == answer, onClick = { answers[index] = answer }, label = { Text(answer.label) })
+                            FilterChip(selected = answers[index] == answer, onClick = { answers[index] = answer }, label = { Text(stringResource(answer.label)) })
                         }
                     }
                 }
             }
         }
         Button(
-            onClick = { scope.finish(summarize(steps, answers, outputs)) },
+            onClick = { scope.finish(summarize(english, steps, answers, outputs)) },
             enabled = answers.size == steps.size,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Save result") }
+        ) { Text(stringResource(R.string.save_result)) }
     }
 }
 
-private fun summarize(steps: List<Step>, answers: Map<Int, StepAnswer>, outputs: Map<Int, String>): CheckResult {
+private fun summarize(english: Context, steps: List<Step>, answers: Map<Int, StepAnswer>, outputs: Map<Int, String>): CheckResult {
     val details = steps.indices.joinToString("\n") { i ->
-        "${answers[i]?.label ?: "?"}: ${steps[i].text}${outputs[i]?.let { "\n  $it" }.orEmpty()}"
+        "${answers[i]?.let { english.getString(it.label) } ?: "?"}: ${steps[i].text.resolve(english)}${outputs[i]?.let { "\n  $it" }.orEmpty()}"
     }
     val failed = answers.values.count { it == StepAnswer.FAIL }
     val skipped = answers.values.count { it == StepAnswer.SKIP }

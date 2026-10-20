@@ -32,9 +32,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.MainViewModel
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.interactive.TestScope
@@ -59,7 +61,7 @@ fun TestRunScreen(viewModel: MainViewModel, testId: String, onDone: () -> Unit) 
     val scope = remember(testId, profile) {
         TestScope(activity, profile, ShizukuShell.takeIf { it.isReady }) { result ->
             viewModel.saveTestResult(testId, result)
-            android.widget.Toast.makeText(activity, "Result saved: ${result.summary}", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(activity, activity.getString(R.string.tests_run_result_saved, result.summary), android.widget.Toast.LENGTH_LONG).show()
             onDone()
         }
     }
@@ -68,7 +70,7 @@ fun TestRunScreen(viewModel: MainViewModel, testId: String, onDone: () -> Unit) 
         topBar = {
             TopAppBar(
                 title = { Text(test.title) },
-                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.tests_run_back)) } },
             )
         },
     ) { padding ->
@@ -81,15 +83,14 @@ fun TestRunScreen(viewModel: MainViewModel, testId: String, onDone: () -> Unit) 
         ) {
             Text(test.summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                if (scope.crashWatcher.available) "Crash watcher on: any process crash during this test fails it."
-                else "Crash watcher off: connect Shizuku to catch HAL and system crashes during this test.",
+                stringResource(if (scope.crashWatcher.available) R.string.tests_run_crash_watcher_on else R.string.tests_run_crash_watcher_off),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (scope.crashWatcher.available) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             )
             results[testId]?.let { previous ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Badge(previous.status.name.replace('_', ' '), previous.status.color())
-                    Text("Last result: ${previous.summary}", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.tests_run_last_result, previous.summary), style = MaterialTheme.typography.bodySmall)
                 }
             }
             test.content(scope)

@@ -34,6 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import io.github.rthery.devicechecker.R
 import androidx.compose.ui.unit.dp
 import io.github.rthery.devicechecker.checks.CheckStatus
 import kotlinx.coroutines.Dispatchers
@@ -92,8 +95,34 @@ fun AudioDeviceInfo.label(): String {
         AudioDeviceInfo.TYPE_LINE_DIGITAL -> "Digital line out"
         else -> "Type $type"
     }
-    val extra = addressCompat().takeIf { it.isNotBlank() && type == AudioDeviceInfo.TYPE_BUILTIN_MIC } ?: productName?.toString()?.takeIf { it.isNotBlank() && it != android.os.Build.MODEL }
+    val extra = labelDetail()
     return if (extra != null) "$base ($extra)" else base
+}
+
+private fun AudioDeviceInfo.labelDetail(): String? =
+    addressCompat().takeIf { it.isNotBlank() && type == AudioDeviceInfo.TYPE_BUILTIN_MIC } ?: productName?.toString()?.takeIf { it.isNotBlank() && it != android.os.Build.MODEL }
+
+/** On-screen counterpart of [label], which stays English for results. */
+@Composable
+private fun AudioDeviceInfo.displayLabel(): String {
+    val base = when (type) {
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> stringResource(R.string.hw_audio_device_speaker)
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> stringResource(R.string.hw_audio_device_earpiece)
+        AudioDeviceInfo.TYPE_BUILTIN_MIC -> stringResource(R.string.hw_audio_device_builtin_mic)
+        AudioDeviceInfo.TYPE_WIRED_HEADSET -> stringResource(R.string.hw_audio_device_wired_headset)
+        AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> stringResource(R.string.hw_audio_device_wired_headphones)
+        AudioDeviceInfo.TYPE_USB_HEADSET -> stringResource(R.string.hw_audio_device_usb_headset)
+        AudioDeviceInfo.TYPE_USB_DEVICE -> stringResource(R.string.hw_audio_device_usb_audio)
+        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> stringResource(R.string.hw_audio_device_bluetooth_a2dp)
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> stringResource(R.string.hw_audio_device_bluetooth_sco)
+        Compat.bleHeadsetType -> stringResource(R.string.hw_audio_device_bluetooth_le)
+        AudioDeviceInfo.TYPE_HDMI -> stringResource(R.string.hw_audio_device_hdmi)
+        AudioDeviceInfo.TYPE_LINE_ANALOG -> stringResource(R.string.hw_audio_device_line_out)
+        AudioDeviceInfo.TYPE_LINE_DIGITAL -> stringResource(R.string.hw_audio_device_digital_line_out)
+        else -> stringResource(R.string.hw_audio_device_type, type)
+    }
+    val extra = labelDetail()
+    return if (extra != null) stringResource(R.string.hw_audio_device_with_detail, base, extra) else base
 }
 
 val audioTests = listOf(
@@ -129,12 +158,12 @@ private fun AudioOutputTest(scope: TestScope) {
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Tap Play for each output and answer. Plug headphones, a USB headset or connect a Bluetooth device and they appear here.")
+        Instructions(stringResource(R.string.hw_audio_output_instructions))
         devices.forEach { device ->
             val key = "${device.type}:${device.addressCompat()}"
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(device.label(), style = MaterialTheme.typography.titleSmall)
+                    Text(device.displayLabel(), style = MaterialTheme.typography.titleSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(enabled = playing == null, onClick = {
                             coroutines.launch {
@@ -142,9 +171,9 @@ private fun AudioOutputTest(scope: TestScope) {
                                 playTone(audio, device)
                                 playing = null
                             }
-                        }) { Text(if (playing == key) "Playing..." else "Play") }
-                        OutlinedButton(onClick = { heard[key] = true }) { Text(if (heard[key] == true) "Heard ✓" else "Heard") }
-                        OutlinedButton(onClick = { heard[key] = false }) { Text(if (heard[key] == false) "Silent ✗" else "Silent") }
+                        }) { Text(stringResource(if (playing == key) R.string.hw_audio_playing else R.string.hw_audio_play)) }
+                        OutlinedButton(onClick = { heard[key] = true }) { Text(stringResource(if (heard[key] == true) R.string.hw_audio_heard_checked else R.string.hw_audio_heard)) }
+                        OutlinedButton(onClick = { heard[key] = false }) { Text(stringResource(if (heard[key] == false) R.string.hw_audio_silent_checked else R.string.hw_audio_silent)) }
                     }
                 }
             }
@@ -165,7 +194,7 @@ private fun AudioOutputTest(scope: TestScope) {
                 scope.finish(results.toResult("Every output played", "No outputs"))
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Save result") }
+        ) { Text(stringResource(R.string.save_result)) }
     }
 }
 
@@ -202,7 +231,7 @@ private suspend fun playTone(audio: AudioManager, device: AudioDeviceInfo) = wit
 
 @Composable
 private fun AudioInputTest(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.RECORD_AUDIO), "Recording needs the microphone permission.") {
+    RequirePermissions(listOf(Manifest.permission.RECORD_AUDIO), stringResource(R.string.hw_audio_input_permission)) {
         AudioInputContent(scope)
     }
 }
@@ -211,9 +240,18 @@ internal class Recording(val rmsDbfs: Double, val peakDbfs: Double, val firstRea
     val hasSignal get() = rmsDbfs > SIGNAL_THRESHOLD_DBFS
     val slowStart get() = firstReadMs > MAX_FIRST_READ_MS
     fun describe() = "RMS ${"%.1f".format(rmsDbfs)} dBFS, peak ${"%.1f".format(peakDbfs)} dBFS, first buffer $firstReadMs ms${activeMic?.let { ", captured by $it" }.orEmpty()}"
+
+    /** On-screen counterpart of [describe], which stays English for results. */
+    @Composable
+    fun displayDescription() = stringResource(R.string.hw_audio_recording_levels, rmsDbfs, peakDbfs, firstReadMs) +
+        activeMic?.let { stringResource(R.string.hw_audio_recording_captured_by, it) }.orEmpty()
 }
 
-private enum class Quality(val label: String) { CLEAR("Clear"), DISTORTED("Distorted"), SILENT("Silent") }
+private enum class Quality(val label: String, @StringRes val display: Int) {
+    CLEAR("Clear", R.string.hw_audio_quality_clear),
+    DISTORTED("Distorted", R.string.hw_audio_quality_distorted),
+    SILENT("Silent", R.string.hw_audio_quality_silent),
+}
 
 @Composable
 private fun AudioInputContent(scope: TestScope) {
@@ -227,16 +265,16 @@ private fun AudioInputContent(scope: TestScope) {
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Tap Record and talk normally. Then play it back and say how it sounds: the level alone cannot tell noise from speech.")
+        Instructions(stringResource(R.string.hw_audio_input_instructions))
         devices.forEach { device ->
             val key = "${device.type}:${device.addressCompat()}"
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(device.label(), style = MaterialTheme.typography.titleSmall)
+                    Text(device.displayLabel(), style = MaterialTheme.typography.titleSmall)
                     if (busy == key) LinearProgressIndicator(progress = { level }, modifier = Modifier.fillMaxWidth())
                     recordings[key]?.let { rec ->
                         Text(
-                            rec.describe() + if (rec.slowStart) "\nThe first buffer was slow: the audio HAL blocked." else "",
+                            rec.displayDescription() + if (rec.slowStart) stringResource(R.string.hw_audio_slow_first_buffer) else "",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -247,7 +285,7 @@ private fun AudioInputContent(scope: TestScope) {
                                 recordings[key] = record(audio, device) { level = it }
                                 busy = null
                             }
-                        }) { Text(if (busy == key) "Recording..." else "Record") }
+                        }) { Text(stringResource(if (busy == key) R.string.hw_audio_recording else R.string.hw_audio_record)) }
                         recordings[key]?.let { rec ->
                             OutlinedButton(enabled = busy == null, onClick = {
                                 coroutines.launch {
@@ -256,13 +294,13 @@ private fun AudioInputContent(scope: TestScope) {
                                     played[key] = true
                                     busy = null
                                 }
-                            }) { Text("Play back") }
+                            }) { Text(stringResource(R.string.hw_audio_play_back)) }
                         }
                     }
                     if (played[key] == true) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Quality.entries.forEach { entry ->
-                                FilterChip(selected = quality[key] == entry, onClick = { quality[key] = entry }, label = { Text(entry.label) })
+                                FilterChip(selected = quality[key] == entry, onClick = { quality[key] = entry }, label = { Text(stringResource(entry.display)) })
                             }
                         }
                     }
@@ -289,7 +327,7 @@ private fun AudioInputContent(scope: TestScope) {
                 scope.finish(results.toResult("Every microphone captured sound", "No microphones"))
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Save result") }
+        ) { Text(stringResource(R.string.save_result)) }
     }
 }
 

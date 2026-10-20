@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker
 
+import io.github.rthery.devicechecker.ui.UiText
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -53,11 +54,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .map { it.theme }
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.catalog.value.theme)
 
-    data class StockTransfer(val busy: Boolean = false, val message: String? = null, val error: Boolean = false)
+    data class StockTransfer(val busy: Boolean = false, val message: UiText? = null, val error: Boolean = false)
     private val _stockTransfer = MutableStateFlow(StockTransfer())
     val stockTransfer = _stockTransfer.asStateFlow()
 
-    private fun transferStock(block: suspend () -> String) {
+    private fun transferStock(block: suspend () -> UiText) {
         if (_stockTransfer.value.busy) return
         _stockTransfer.value = StockTransfer(busy = true)
         viewModelScope.launch {
@@ -67,7 +68,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _stockTransfer.value = StockTransfer()
                 throw e
             } catch (e: Exception) {
-                _stockTransfer.value = StockTransfer(message = e.message ?: "Stock transfer failed", error = true)
+                _stockTransfer.value = StockTransfer(message = e.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.screen_stock_transfer_failed), error = true)
             }
         }
     }
@@ -78,7 +79,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 ?: error("Cannot read this file")
         }
         repository.importStock(text)?.let { error(it) }
-        "Stock capture imported. Comparisons updated."
+        UiText.Res(R.string.screen_stock_imported)
     }
 
     fun exportStock(uri: Uri) = transferStock {
@@ -88,7 +89,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 file.inputStream().use { it.copyTo(output) }
             } ?: error("Cannot save to this file")
         }
-        "Stock capture saved. Import it on the ROM you want to test."
+        UiText.Res(R.string.screen_stock_saved)
     }
 
     private val _packImportErrors = MutableStateFlow<List<String>?>(null)

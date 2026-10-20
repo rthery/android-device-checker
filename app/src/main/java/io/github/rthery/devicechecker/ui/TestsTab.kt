@@ -1,6 +1,7 @@
 package io.github.rthery.devicechecker.ui
 
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -50,12 +51,15 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.data.Category
 import io.github.rthery.devicechecker.data.RequirementPriority
 import io.github.rthery.devicechecker.data.TestKind
@@ -69,7 +73,9 @@ import io.github.rthery.devicechecker.data.stateOf
 import io.github.rthery.devicechecker.data.testSummary
 import io.github.rthery.devicechecker.shell.ShizukuState
 
-enum class TestFilter(val label: String) { ALL("All"), NEEDS("Need you"), FAILED("Failed"), AUTO("Automatic") }
+enum class TestFilter(@StringRes val label: Int) {
+    ALL(R.string.tests_filter_all), NEEDS(R.string.tests_filter_needs), FAILED(R.string.tests_filter_failed), AUTO(R.string.tests_filter_auto),
+}
 
 private fun TestFilter.accepts(test: UnifiedTest, state: TestState) = when (this) {
     TestFilter.ALL -> true
@@ -145,9 +151,10 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
         item {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Tests", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.tests_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "${Build.MODEL} · Android ${Build.VERSION.RELEASE}${deviceInfo.rom?.let { " · ${it.label}" }.orEmpty()}",
+                        deviceInfo.rom?.let { stringResource(R.string.tests_device_line_rom, Build.MODEL, Build.VERSION.RELEASE, it.label) }
+                            ?: stringResource(R.string.tests_device_line, Build.MODEL, Build.VERSION.RELEASE),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -158,7 +165,7 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
                     color = if (shizuku == ShizukuState.READY) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
                 ) {
                     Text(
-                        if (shizuku == ShizukuState.READY) "Shizuku on" else "Shizuku off",
+                        stringResource(if (shizuku == ShizukuState.READY) R.string.tests_shizuku_on else R.string.tests_shizuku_off),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     )
@@ -183,7 +190,7 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
                     ) {
                         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("${counts[f]}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(f.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                            Text(stringResource(f.label), style = MaterialTheme.typography.labelMedium, maxLines = 1)
                         }
                     }
                 }
@@ -203,14 +210,14 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
                         ) {
                             Icon(Icons.Filled.PlayArrow, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Run $autoCount automatic tests")
+                            Text(pluralStringResource(R.plurals.tests_run_automatic, autoCount, autoCount))
                         }
                         lastRun?.let { summary ->
                             Spacer(Modifier.size(8.dp))
                             Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
                                 Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        "${if (summary.stopped) "Run stopped" else "Run finished"} · ${summary.failed} automatic tests failed",
+                                        pluralStringResource(if (summary.stopped) R.plurals.tests_run_stopped else R.plurals.tests_run_finished, summary.failed, summary.failed),
                                         style = MaterialTheme.typography.titleSmall,
                                         modifier = Modifier.weight(1f),
                                     )
@@ -218,9 +225,9 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
                                         FilledTonalButton(onClick = {
                                             filter = TestFilter.FAILED
                                             viewModel.dismissLastRun()
-                                        }) { Text("Show failed") }
+                                        }) { Text(stringResource(R.string.tests_show_failed)) }
                                     } else {
-                                        OutlinedButton(onClick = viewModel::dismissLastRun) { Text("OK") }
+                                        OutlinedButton(onClick = viewModel::dismissLastRun) { Text(stringResource(R.string.tests_ok)) }
                                     }
                                 }
                             }
@@ -232,7 +239,7 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
 
         if (visibleBundles.values.all { it.isEmpty() }) {
             item(key = "empty") {
-                Text("No tests match these filters.", modifier = Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.tests_empty), modifier = Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -241,12 +248,12 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
             if (visible.isEmpty()) return@forEach
             val open = category.name !in closed
             item(key = "cat-${category.name}", contentType = "category") {
-                CategoryHeader(category, categorySummaries.getValue(category), open) { viewModel.toggleCategory(category) }
+                CategoryHeader(category, summaryText(categorySummaries.getValue(category)), open) { viewModel.toggleCategory(category) }
             }
             if (open) {
                 itemsIndexed(visible, key = { _, bundle -> bundle.id }, contentType = { _, bundle -> if (bundle.tests.size > 1) "bundle" else "test" }) { index, bundle ->
                     if (bundle.tests.size > 1) {
-                        BundleRow(bundle.title, bundle.tests.size, bundleSummaries.getValue(bundle.id), bundleStates.getValue(bundle.id)) { selectedBundleId = bundle.id }
+                        BundleRow(bundle.title.resolve(), bundle.tests.size, summaryText(bundleSummaries.getValue(bundle.id)), bundleStates.getValue(bundle.id)) { selectedBundleId = bundle.id }
                     } else {
                         val test = bundle.tests.single()
                         val state = states.getValue(test.id)
@@ -289,7 +296,7 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
             if (selectedTest != null) {
                 panelStates.SaveableStateProvider("detail-${selectedTest.id}") {
                     Column {
-                        if (selectedBundle != null) TextButton(onClick = back) { Text("Back to ${selectedBundle.title}") }
+                        if (selectedBundle != null) TextButton(onClick = back) { Text(stringResource(R.string.tests_back_to, selectedBundle.title.resolve())) }
                         TestDetailContent(
                             viewModel = viewModel, test = selectedTest,
                             state = states.getValue(selectedTest.id), result = results[selectedTest.id],
@@ -321,8 +328,8 @@ private fun PrioritySelector(priority: RequirementPriority, onSelect: (Requireme
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
         ) {
-            Text(if (priority == RequirementPriority.ALL) "All priorities" else "${priority.label} · ${priority.levels}", modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Filter by requirement priority")
+            Text(if (priority == RequirementPriority.ALL) stringResource(R.string.tests_all_priorities) else "${priority.label} · ${priority.levels}", modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.tests_priority_filter_description))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             RequirementPriority.entries.forEach { option ->
@@ -333,7 +340,7 @@ private fun PrioritySelector(priority: RequirementPriority, onSelect: (Requireme
                             if (option.levels.isNotEmpty()) Text(option.levels, style = MaterialTheme.typography.labelSmall)
                         }
                     },
-                    trailingIcon = { if (option == priority) Icon(Icons.Filled.Check, contentDescription = "Selected") },
+                    trailingIcon = { if (option == priority) Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.tests_selected)) },
                     onClick = { expanded = false; onSelect(option) },
                 )
             }
@@ -346,12 +353,12 @@ private fun RunningCard(position: Int, total: Int, current: String, onStop: () -
     Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Running $position of $total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.tests_running_position, position, total), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 OutlinedButton(
                     onClick = onStop,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
-                ) { Text("Stop") }
+                ) { Text(stringResource(R.string.tests_stop)) }
             }
             LinearProgressIndicator(progress = { position.toFloat() / total }, modifier = Modifier.fillMaxWidth())
             Text(current, style = MaterialTheme.typography.bodyMedium)
@@ -364,32 +371,33 @@ private fun CategoryHeader(category: Category, summary: String, open: Boolean, o
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClickLabel = if (open) "Collapse" else "Expand", onClick = onToggle)
+            .clickable(role = Role.Button, onClickLabel = stringResource(if (open) R.string.tests_collapse else R.string.tests_expand), onClick = onToggle)
             .padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(category.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(category.titleRes), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null)
     }
 }
 
-private fun UnifiedTest.actionLabel(state: TestState): String = when {
-    kind == TestKind.AUTO -> "Run"
-    isRequirementOnly -> "Mark"
-    kind == TestKind.MANUAL -> "Steps"
-    state == TestState.NOT_RUN -> "Start"
-    state == TestState.NEEDS -> "Continue"
-    else -> "Open"
+@StringRes
+private fun UnifiedTest.actionLabel(state: TestState): Int = when {
+    kind == TestKind.AUTO -> R.string.tests_action_run
+    isRequirementOnly -> R.string.tests_action_mark
+    kind == TestKind.MANUAL -> R.string.tests_action_steps
+    state == TestState.NOT_RUN -> R.string.tests_action_start
+    state == TestState.NEEDS -> R.string.tests_action_continue
+    else -> R.string.tests_action_open
 }
 
 @Composable
 internal fun TestRow(
     test: UnifiedTest,
     state: TestState,
-    line: String,
+    line: UiText,
     first: Boolean,
     last: Boolean,
     runActive: Boolean,
@@ -422,12 +430,12 @@ internal fun TestRow(
                 overflow = TextOverflow.Ellipsis,
             )
             test.source?.let {
-                Text("From $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(stringResource(R.string.tests_from_source, it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 LevelPill(test.level)
                 Text(
-                    line,
+                    line.resolve(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (state == TestState.FAIL) state.colors().border else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -437,7 +445,7 @@ internal fun TestRow(
         }
         val label = test.actionLabel(state)
         val enabled = !(test.kind == TestKind.AUTO && runActive)
-        TestActionButton(label = if (test.kind == TestKind.AUTO || test.isRequirementOnly) label else handsOnLabel(test.id, test.kind == TestKind.MANUAL),
+        TestActionButton(label = stringResource(if (test.kind == TestKind.AUTO || test.isRequirementOnly) label else handsOnLabel(test.id, test.kind == TestKind.MANUAL)),
             handsOn = test.kind != TestKind.AUTO, onClick = onAction, enabled = enabled)
     }
 }

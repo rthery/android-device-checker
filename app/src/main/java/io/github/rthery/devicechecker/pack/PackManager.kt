@@ -1,5 +1,7 @@
 package io.github.rthery.devicechecker.pack
 
+import androidx.annotation.StringRes
+import io.github.rthery.devicechecker.R
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -13,7 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 
-enum class PackOrigin(val label: String) { SYSTEM("Shipped with the ROM"), IMPORTED("Imported") }
+enum class PackOrigin(@StringRes val label: Int) { SYSTEM(R.string.screen_packs_origin_system), IMPORTED(R.string.screen_packs_origin_imported) }
 
 data class PackEntry(
     val file: File,

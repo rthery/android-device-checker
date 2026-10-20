@@ -46,7 +46,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.checks.fail
 import kotlinx.coroutines.Dispatchers
@@ -266,7 +269,7 @@ private fun analyzePhoto(target: CameraTarget, bytes: ByteArray, size: Size, rot
 
 @Composable
 private fun PhotoTest(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.CAMERA), "Taking photos needs the camera permission.") {
+    RequirePermissions(listOf(Manifest.permission.CAMERA), stringResource(R.string.camera_photo_permission)) {
         PhotoContent(scope)
     }
 }
@@ -280,7 +283,7 @@ private fun PhotoContent(scope: TestScope) {
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Point the phone at something with detail and good light, then start. Each of the ${targets.size} camera(s) takes one photo.")
+        Instructions(pluralStringResource(R.plurals.camera_photo_instructions, targets.size, targets.size))
         Button(enabled = !running, onClick = {
             coroutines.launch {
                 running = true
@@ -288,7 +291,7 @@ private fun PhotoContent(scope: TestScope) {
                 targets.forEach { photos += takePhoto(context, it) }
                 running = false
             }
-        }) { Text(if (running) "Capturing ${photos.size + 1}/${targets.size}..." else "Take photos") }
+        }) { Text(if (running) stringResource(R.string.camera_photo_capturing, photos.size + 1, targets.size) else stringResource(R.string.camera_photo_take)) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             photos.forEach { photo ->
                 Column(Modifier.size(160.dp, 240.dp)) {
@@ -300,7 +303,11 @@ private fun PhotoContent(scope: TestScope) {
         }
         if (photos.size == targets.size && photos.isNotEmpty() && !running) {
             val results = ItemResults().apply { photos.forEach { add(it.status, "${it.target.label}: ${it.note}") } }
-            YesNo("Do the photos look right (sharp, correct colors, the expected lens)?", yes = "Look right", no = "Something is wrong") { ok ->
+            YesNo(
+                stringResource(R.string.camera_photo_question),
+                yes = stringResource(R.string.camera_photo_look_right),
+                no = stringResource(R.string.camera_something_wrong),
+            ) { ok ->
                 val auto = results.toResult("Every camera took a photo", "No cameras")
                 scope.finish(if (ok) auto else fail("Tester reported a problem with the photos", auto.details))
             }
@@ -404,7 +411,7 @@ internal fun ClipPlayer(file: File, onDone: () -> Unit) {
 
 @Composable
 private fun VideoTest(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), "Recording video needs the camera and microphone permissions.") {
+    RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), stringResource(R.string.camera_video_permission)) {
         VideoContent(scope)
     }
 }
@@ -418,7 +425,7 @@ private fun VideoContent(scope: TestScope) {
     val coroutines = rememberCoroutineScope()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Records ${VIDEO_MS / 1000} s with sound on ${targets.joinToString { it.label }}, then checks duration, video and audio tracks.")
+        Instructions(stringResource(R.string.camera_video_instructions, (VIDEO_MS / 1000).toInt(), targets.joinToString { it.label }))
         Button(enabled = !running, onClick = {
             coroutines.launch {
                 running = true
@@ -426,7 +433,7 @@ private fun VideoContent(scope: TestScope) {
                 targets.forEach { clips += recordClip(context, it) }
                 running = false
             }
-        }) { Text(if (running) "Recording..." else "Record clips") }
+        }) { Text(stringResource(if (running) R.string.camera_video_recording else R.string.camera_video_record)) }
         var playing by remember { mutableStateOf<File?>(null) }
         clips.forEach { clip ->
             if (playing == clip.file && clip.file != null) {
@@ -435,10 +442,14 @@ private fun VideoContent(scope: TestScope) {
                 clip.frame?.let { Image(it.asImageBitmap(), contentDescription = clip.label, modifier = Modifier.size(160.dp, 120.dp)) }
             }
             Text("${clip.status.name} ${clip.label}: ${clip.note}", style = MaterialTheme.typography.bodySmall)
-            clip.file?.let { file -> OutlinedButton(onClick = { playing = file }) { Text("Play with sound") } }
+            clip.file?.let { file -> OutlinedButton(onClick = { playing = file }) { Text(stringResource(R.string.camera_play_with_sound)) } }
         }
         if (clips.size == targets.size && clips.isNotEmpty() && !running) {
-            YesNo("Play each clip. Are the picture and the sound right on all of them?", yes = "All right", no = "Something is wrong") { ok ->
+            YesNo(
+                stringResource(R.string.camera_video_question),
+                yes = stringResource(R.string.camera_video_all_right),
+                no = stringResource(R.string.camera_something_wrong),
+            ) { ok ->
                 val results = ItemResults().apply { clips.forEach { add(it.status, "${it.label}: ${it.note}") } }
                 val auto = results.toResult("Video with sound on every tested camera", "No cameras")
                 clips.forEach { it.file?.delete() }

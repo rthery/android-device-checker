@@ -62,6 +62,8 @@ val eosChecks = listOf(
         when {
             !locked && (deviceState == "unlocked" || flashLocked == "0" || bootState == "orange") ->
                 info("Bootloader unlocked. Relocking only applies to official builds on lockable devices.", details)
+            deviceState.isEmpty() && flashLocked.isEmpty() && bootState.isEmpty() ->
+                notApplicable("This bootloader does not report its lock or verified boot state").copy(details = details)
             !locked -> warn("Lock state is not exposed", details)
             bootState in setOf("green", "yellow") && !verityOff -> pass("Bootloader locked, verified boot $bootState", details)
             else -> fail("Bootloader locked but verified boot is $bootState and verity ${verityMode.ifEmpty { "unknown" }}", details)

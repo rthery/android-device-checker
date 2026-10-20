@@ -1,5 +1,7 @@
 package io.github.rthery.devicechecker.data
 
+import androidx.annotation.StringRes
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.catalog.Level
 import io.github.rthery.devicechecker.catalog.Requirement
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
@@ -16,23 +18,23 @@ import io.github.rthery.devicechecker.pack.PackContent
 import io.github.rthery.devicechecker.pack.ThemeHints
 import io.github.rthery.devicechecker.pack.Waiver
 
-enum class TestKind(val label: String) {
-    AUTO("Automatic"),
-    GUIDED("Guided"),
-    MANUAL("Manual"),
-    OFF_DEVICE("Off-device"),
+enum class TestKind(@StringRes val labelRes: Int) {
+    AUTO(R.string.tests_kind_auto),
+    GUIDED(R.string.tests_kind_guided),
+    MANUAL(R.string.tests_kind_manual),
+    OFF_DEVICE(R.string.tests_kind_off_device),
 }
 
-enum class Category(val title: String) {
-    SECURITY("Security and build"),
-    KERNEL("Kernel"),
-    CAMERA("Cameras and codecs"),
-    AUDIO("Audio"),
-    CONNECTIVITY("Connectivity"),
-    HARDWARE("Display, sensors and storage"),
-    SYSTEM("System and stability"),
-    UPDATES("Updates and recovery"),
-    OFF_DEVICE("Not testable on the phone"),
+enum class Category(val title: String, @StringRes val titleRes: Int) {
+    SECURITY("Security and build", R.string.tests_category_security),
+    KERNEL("Kernel", R.string.tests_category_kernel),
+    CAMERA("Cameras and codecs", R.string.tests_category_camera),
+    AUDIO("Audio", R.string.tests_category_audio),
+    CONNECTIVITY("Connectivity", R.string.tests_category_connectivity),
+    HARDWARE("Display, sensors and storage", R.string.tests_category_hardware),
+    SYSTEM("System and stability", R.string.tests_category_system),
+    UPDATES("Updates and recovery", R.string.tests_category_updates),
+    OFF_DEVICE("Not testable on the phone", R.string.tests_category_off_device),
 }
 
 fun Section.category(): Category = when (this) {

@@ -50,7 +50,7 @@ val CHECK_HOW: Map<String, List<String>> = mapOf(
     "network.trafficstats" to listOf("Fetches one page and checks the app's traffic counter moved"),
     "sd.readwrite" to listOf("Writes 16 MB to the SD card, reads it back and compares checksums"),
     "charging.usb" to listOf("Reads the USB charger type and input current limit", "Flags a standard USB port allowed more than 500 mA"),
-    "battery.capacity" to listOf("Reads the design and full charge capacity of the battery", "You compare them with the device spec"),
+    "battery.capacity" to listOf("Reads the design and full charge capacity from the battery or bms power supply", "You compare them with the device spec"),
     "bluetooth.codecs" to listOf("Reads the Bluetooth codec state through Shizuku"),
     "crashes.boot" to listOf("Reads dropbox through Shizuku: tombstones, app crashes, ANRs, restarts", "Flags 3 or more crashes of one process, restarts and wtf floods"),
     "binder.vndbinder" to listOf("Checks /dev/vndbinder exists", "Looks in the log for vendor processes waiting on missing services"),

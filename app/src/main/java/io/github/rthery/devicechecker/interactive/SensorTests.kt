@@ -27,6 +27,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.content.Context
+import androidx.annotation.StringRes
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import io.github.rthery.devicechecker.R
+import io.github.rthery.devicechecker.ui.UiText
+import io.github.rthery.devicechecker.ui.englishContext
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.checks.fail
 import io.github.rthery.devicechecker.checks.pass
@@ -42,7 +49,7 @@ val sensorTests = listOf(
     InteractiveTest("ir.transmit", "IR blaster", "Sends TV power codes so you can see or check the emitter.") { IrTest(it) },
 )
 
-private class SensorGoal(val type: Int, val name: String, val instruction: String, val reached: (FloatArray, SensorState) -> Boolean)
+private class SensorGoal(val type: Int, val name: String, @StringRes val display: Int, @StringRes val instruction: Int, val reached: (FloatArray, SensorState) -> Boolean)
 
 private class SensorState {
     var first: FloatArray? = null
@@ -51,21 +58,21 @@ private class SensorState {
 }
 
 private val SENSOR_GOALS = listOf(
-    SensorGoal(Sensor.TYPE_PROXIMITY, "Proximity", "Cover the top of the screen with your hand, then uncover it.") { values, state ->
+    SensorGoal(Sensor.TYPE_PROXIMITY, "Proximity", R.string.hw_sensor_proximity, R.string.hw_sensor_proximity_instruction) { values, state ->
         val near = values[0] < 1f
         if (near) state.sawNear = true
         state.sawNear && !near
     },
-    SensorGoal(Sensor.TYPE_LIGHT, "Light", "Cover the light sensor (near the earpiece), then uncover it.") { values, state ->
+    SensorGoal(Sensor.TYPE_LIGHT, "Light", R.string.hw_sensor_light, R.string.hw_sensor_light_instruction) { values, state ->
         val baseline = state.first?.get(0) ?: return@SensorGoal false
         if (values[0] < baseline * LIGHT_DROP_RATIO) state.sawDrop = true
         state.sawDrop && values[0] > baseline * 0.7f
     },
-    SensorGoal(Sensor.TYPE_ACCELEROMETER, "Accelerometer", "Turn the phone face down, then face up.") { values, state ->
+    SensorGoal(Sensor.TYPE_ACCELEROMETER, "Accelerometer", R.string.hw_sensor_accelerometer, R.string.hw_sensor_accelerometer_instruction) { values, state ->
         if (values[2] < -7f) state.sawDrop = true
         state.sawDrop && values[2] > 7f
     },
-    SensorGoal(Sensor.TYPE_GYROSCOPE, "Gyroscope", "Rotate the phone quickly.") { values, _ ->
+    SensorGoal(Sensor.TYPE_GYROSCOPE, "Gyroscope", R.string.hw_sensor_gyroscope, R.string.hw_sensor_gyroscope_instruction) { values, _ ->
         sqrt(values[0] * values[0] + values[1] * values[1] + values[2] * values[2]) > GYRO_ROTATION_RAD_S
     },
 )
@@ -96,13 +103,13 @@ private fun SensorReactionTest(scope: TestScope) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Instructions("Do each action. A sensor turns green when it reacts.")
+        Instructions(stringResource(R.string.hw_sensor_reaction_instructions))
         goals.forEach { goal ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("${if (reached[goal.type] == true) "✓" else "…"} ${goal.name}", style = MaterialTheme.typography.titleSmall)
-                    Text(goal.instruction, style = MaterialTheme.typography.bodyMedium)
-                    Mono(live[goal.type] ?: "no event yet")
+                    Text("${if (reached[goal.type] == true) "✓" else "…"} ${stringResource(goal.display)}", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(goal.instruction), style = MaterialTheme.typography.bodyMedium)
+                    Mono(live[goal.type] ?: stringResource(R.string.hw_sensor_no_event_yet))
                 }
             }
         }
@@ -113,37 +120,38 @@ private fun SensorReactionTest(scope: TestScope) {
                 else results.add(CheckStatus.FAIL, "${goal.name} did not react (last: ${live[goal.type] ?: "no event"})")
             }
             scope.finish(results.toResult("Every core sensor reacted", "No core sensors present"))
-        }, modifier = Modifier.fillMaxWidth()) { Text(if (reached.size == goals.size) "Save result" else "Save (unreached count as failed)") }
+        }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(if (reached.size == goals.size) R.string.save_result else R.string.hw_sensor_save_unreached)) }
     }
 }
 
 @Composable
 private fun FingerprintTest(scope: TestScope) {
     if (!scope.profile.stockHasFingerprint) {
-        NotApplicable(scope, "Stock has no fingerprint sensor")
+        NotApplicable(scope, R.string.hw_sensor_stock_no_fingerprint)
         return
     }
     val (status, code) = remember { Biometrics.status(scope.activity) }
     var rejections by remember { mutableIntStateOf(0) }
-    var outcome by remember { mutableStateOf<String?>(null) }
+    var outcome by remember { mutableStateOf<UiText?>(null) }
     var matched by remember { mutableStateOf(false) }
+    val english = LocalContext.current.englishContext()
+    val promptTitle = stringResource(R.string.hw_sensor_fp_prompt_title)
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when (status) {
             BiometricStatus.NONE_ENROLLED -> {
-                Instructions("No fingerprint is enrolled. Enrolling one is itself a good test of the sensor.")
+                Instructions(stringResource(R.string.hw_sensor_fp_none_enrolled))
                 ShortcutButton(Shortcuts.fingerprintEnroll)
             }
             BiometricStatus.READY -> {
                 Instructions(
-                    if (Biometrics.hasSystemPrompt) "Tap Start. First touch with an unenrolled finger (should be rejected), then with an enrolled one."
-                    else "Tap Start, then touch the sensor: first with an unenrolled finger (should be rejected), then with an enrolled one. This Android version has no system prompt."
+                    stringResource(if (Biometrics.hasSystemPrompt) R.string.hw_sensor_fp_instructions_prompt else R.string.hw_sensor_fp_instructions_legacy)
                 )
                 Button(onClick = {
-                    Biometrics.authenticate(scope.activity, "Fingerprint test", object : BiometricListener {
+                    Biometrics.authenticate(scope.activity, promptTitle, object : BiometricListener {
                         override fun onMatch() {
                             matched = true
-                            outcome = "Matched"
+                            outcome = UiText.Res(R.string.hw_sensor_fp_matched)
                         }
 
                         override fun onReject() {
@@ -151,21 +159,20 @@ private fun FingerprintTest(scope: TestScope) {
                         }
 
                         override fun onError(message: String) {
-                            outcome = message
+                            outcome = UiText.Raw(message)
                         }
                     })
-                }) { Text("Start") }
+                }) { Text(stringResource(R.string.hw_sensor_fp_start)) }
             }
-            else -> Instructions("Biometric status $status ($code): the sensor is not usable.")
+            else -> Instructions(stringResource(R.string.hw_sensor_fp_unusable, status.toString(), code))
         }
-        Mono("Rejections: $rejections\nResult: ${outcome ?: "-"}")
-        if (outcome != null) {
+        Mono(stringResource(R.string.hw_sensor_fp_status, rejections, outcome?.resolve() ?: "-"))
+        outcome?.let { current ->
             YesNo(
-                if (Biometrics.hasSystemPrompt) "Did the prompt describe where the sensor is correctly (rear, front, side or under the screen)?"
-                else "Did the sensor respond where you expected it?",
-                yes = "Correct", no = "Wrong place",
+                stringResource(if (Biometrics.hasSystemPrompt) R.string.hw_sensor_fp_question_prompt else R.string.hw_sensor_fp_question_legacy),
+                yes = stringResource(R.string.hw_sensor_fp_correct), no = stringResource(R.string.hw_sensor_fp_wrong_place),
             ) { hintRight ->
-                val details = "Rejections: $rejections\nResult: $outcome\nstatus: $status\nLocation hint: ${if (hintRight) "correct" else "wrong"}"
+                val details = "Rejections: $rejections\nResult: ${current.resolve(english)}\nstatus: $status\nLocation hint: ${if (hintRight) "correct" else "wrong"}"
                 scope.finish(
                     when {
                         !matched -> fail("No successful match", details)
@@ -194,36 +201,39 @@ private fun necPattern(address: Int, command: Int): IntArray {
 }
 
 private val IR_CODES = listOf(
-    "LG / NEC TV power" to necPattern(0x04, 0x08),
-    "Generic NEC power" to necPattern(0x00, 0x45),
+    R.string.hw_sensor_ir_code_lg_nec to necPattern(0x04, 0x08),
+    R.string.hw_sensor_ir_code_generic_nec to necPattern(0x00, 0x45),
 )
 
 @Composable
 private fun IrTest(scope: TestScope) {
     if (!scope.profile.stockHasIrBlaster) {
-        NotApplicable(scope, "Stock has no IR blaster")
+        NotApplicable(scope, R.string.hw_sensor_stock_no_ir)
         return
     }
     val ir = remember { scope.activity.getSystemService(ConsumerIrManager::class.java) }
-    var log by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val english = remember(context) { context.englishContext() }
+    var log by remember { mutableStateOf<((Context) -> String)?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (ir?.hasIrEmitter() != true) {
-            Instructions("No IR emitter is exposed.")
-            Button(onClick = { scope.finish(fail("No IR emitter")) }) { Text("Save result") }
+            Instructions(stringResource(R.string.hw_sensor_ir_no_emitter))
+            Button(onClick = { scope.finish(fail("No IR emitter")) }) { Text(stringResource(R.string.save_result)) }
             return@Column
         }
-        Instructions("Point the phone at a TV, or watch the IR LED through another phone's camera: most cameras show IR as a purple flash.")
+        Instructions(stringResource(R.string.hw_sensor_ir_instructions))
         IR_CODES.forEach { (name, pattern) ->
             OutlinedButton(onClick = {
-                log = runCatching {
-                    ir.transmit(IR_CARRIER_HZ, pattern)
-                    "Sent $name (${pattern.size} pulses, total ${pattern.sum() / 1000} ms)"
-                }.getOrElse { "Transmit failed: ${it.message}" }
-            }) { Text("Send $name") }
+                log = runCatching { ir.transmit(IR_CARRIER_HZ, pattern) }.fold(
+                    onSuccess = { { c: Context -> c.getString(R.string.hw_sensor_ir_sent, c.getString(name), pattern.size, pattern.sum() / 1000) } },
+                    onFailure = { error -> { c: Context -> c.getString(R.string.hw_sensor_ir_failed, error.message.toString()) } },
+                )
+            }) { Text(stringResource(R.string.hw_sensor_ir_send, stringResource(name))) }
         }
-        if (log.isNotEmpty()) Mono(log)
-        YesNo("Did the TV react or the LED flash?") { ok ->
-            scope.finish(if (ok) pass("IR emission confirmed", log) else fail("No IR emission seen", log))
+        log?.let { Mono(it(context)) }
+        YesNo(stringResource(R.string.hw_sensor_ir_question)) { ok ->
+            val details = log?.invoke(english).orEmpty()
+            scope.finish(if (ok) pass("IR emission confirmed", details) else fail("No IR emission seen", details))
         }
     }
 }

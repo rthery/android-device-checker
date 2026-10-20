@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="screen_back">Back</string>
+    <string name="screen_not_set">Not set</string>
+
+    <string name="screen_tab_tests">Tests</string>
+    <string name="screen_tab_report">Report</string>
+    <string name="screen_tab_device">Device</string>
+
+    <string name="screen_device_title">Device</string>
+    <string name="screen_device_entry">%1$s: %2$s</string>
+    <string name="screen_device_stock_profile">Stock profile</string>
+    <string name="screen_device_edit">Edit</string>
+    <string name="screen_device_stock_profile_hint">What the stock ROM supports. Tests compare this build with it.</string>
+    <string name="screen_device_packs">Device packs</string>
+    <string name="screen_device_packs_enabled">Enabled: %1$s</string>
+    <string name="screen_device_packs_waiting">A pack for this device is waiting for your review</string>
+    <string name="screen_device_packs_none">None. Import one from your ROM maintainer</string>
+    <string name="screen_device_about">About</string>
+    <string name="screen_device_about_summary">Checklist paraphrased and adapted from the %1$s (%2$s). Not affiliated with LineageOS or Google.</string>
+
+    <string name="screen_profile_row_resolution">Resolution</string>
+    <string name="screen_profile_row_resolution_value">%1$d x %2$d</string>
+    <string name="screen_profile_row_density">Density</string>
+    <string name="screen_profile_row_density_value" tools:ignore="PluralsCandidate">%1$d dpi</string>
+    <string name="screen_profile_row_cameras">Cameras</string>
+    <string name="screen_profile_row_cameras_value">%1$s rear, %2$s front</string>
+    <string name="screen_profile_row_telephony">Telephony</string>
+    <string name="screen_profile_row_nfc">NFC</string>
+    <string name="screen_profile_row_fingerprint">Fingerprint</string>
+    <string name="screen_profile_row_sd_slot">SD slot</string>
+    <string name="screen_profile_row_wifi_mac">Wi-Fi MAC</string>
+    <string name="screen_profile_row_bluetooth_mac">Bluetooth MAC</string>
+
+    <string name="screen_shizuku_connected">Shizuku connected</string>
+    <string name="screen_shizuku_optional">Shizuku (optional)</string>
+    <string name="screen_shizuku_not_running">Not running. Tests that need shell access show as Check this, and the crash watcher is off.</string>
+    <string name="screen_shizuku_unsupported">This Shizuku version is too old. Update it.</string>
+    <string name="screen_shizuku_permission_needed">Running, permission not granted yet.</string>
+    <string name="screen_shizuku_connecting">Connecting to the shell service…</string>
+    <string name="screen_shizuku_ready">Shell-level reads and crash watching are on.</string>
+    <string name="screen_shizuku_retry">Retry</string>
+
+    <string name="screen_profile_title">Stock profile</string>
+    <string name="screen_profile_save">Save</string>
+    <string name="screen_profile_intro">Fill this from the stock ROM or the OEM spec sheet, not from this build, or the checks only compare the build with itself.</string>
+    <string name="screen_profile_section_radios">Form factor and radios</string>
+    <string name="screen_profile_phone">Phone (has an earpiece)</string>
+    <string name="screen_profile_telephony">Telephony (RIL)</string>
+    <string name="screen_profile_wifi">Wi-Fi</string>
+    <string name="screen_profile_bluetooth">Bluetooth</string>
+    <string name="screen_profile_gps">GPS</string>
+    <string name="screen_profile_nfc">NFC</string>
+    <string name="screen_profile_fm_radio">FM radio</string>
+    <string name="screen_profile_ir_blaster">IR blaster</string>
+    <string name="screen_profile_section_hardware">Hardware</string>
+    <string name="screen_profile_fingerprint">Fingerprint sensor</string>
+    <string name="screen_profile_sd_slot">SD card slot</string>
+    <string name="screen_profile_rear_camera">Rear camera</string>
+    <string name="screen_profile_front_camera">Front camera</string>
+    <string name="screen_profile_rear_camera_count">Rear camera sensors</string>
+    <string name="screen_profile_front_camera_count">Front camera sensors</string>
+    <string name="screen_profile_section_display">Display</string>
+    <string name="screen_profile_width">Width (px)</string>
+    <string name="screen_profile_height">Height (px)</string>
+    <string name="screen_profile_density">Density (dpi)</string>
+    <string name="screen_profile_hdr10">HDR10</string>
+    <string name="screen_profile_section_security">Security and storage</string>
+    <string name="screen_profile_forced_encryption">Forced encryption</string>
+    <string name="screen_profile_hardware_encryption">Hardware-backed encryption</string>
+    <string name="screen_profile_frp">Factory Reset Protection</string>
+    <string name="screen_profile_exfat">exFAT</string>
+    <string name="screen_profile_section_mac">MAC addresses</string>
+    <string name="screen_profile_wifi_mac">Stock Wi-Fi MAC</string>
+    <string name="screen_profile_bluetooth_mac">Stock Bluetooth MAC</string>
+
+    <string name="screen_about_title">About</string>
+    <string name="screen_about_version">Android Device Checker %1$s</string>
+    <string name="screen_about_intro">Tests an Android build, custom ROM or stock, on real hardware: automated checks, in-app tests that only ask you what a machine cannot judge, guided steps for the rest, and Markdown and JSON reports.</string>
+    <string name="screen_about_checklist">Checklist</string>
+    <string name="screen_about_checklist_body">The requirements are paraphrased and adapted from the %1$s, licensed %2$s. That document itself adapts parts of Google\'s Android Compatibility Definition Document. Items specific to LineageOS (its Updater, Recovery, browser, LiveDisplay, device tree and maintainer rules) only apply to LineageOS-based builds and show as N/A elsewhere.</string>
+    <string name="screen_about_not_affiliated">This app is not affiliated with or endorsed by the LineageOS project or Google.</string>
+    <string name="screen_about_link_requirements">LineageOS Device Support Requirements</string>
+    <string name="screen_about_link_license">%1$s license</string>
+    <string name="screen_about_link_cdd">Android Compatibility Definition Document</string>
+    <string name="screen_about_libraries">Libraries</string>
+    <string name="screen_about_shizuku">Shizuku API (Apache 2.0) for optional shell-level reads.</string>
+    <string name="screen_about_link_shizuku">Shizuku API</string>
+    <string name="screen_about_androidx">AndroidX, Jetpack Compose and kotlinx.serialization (Apache 2.0).</string>
+
+    <string name="screen_report_title">Report</string>
+    <plurals name="screen_report_count">
+        <item quantity="one">%1$d test on the phone, saved after every test and verdict</item>
+        <item quantity="other">%1$d tests on the phone, saved after every test and verdict</item>
+    </plurals>
+    <string name="screen_report_share_subject">Device requirements report</string>
+    <string name="screen_report_share_subject_json">Device requirements report (JSON)</string>
+    <string name="screen_report_share_text">Share as text</string>
+    <string name="screen_report_share_json">Share JSON</string>
+    <string name="screen_report_written_to">Also written to %1$s for adb pull.</string>
+    <string name="screen_report_history">History</string>
+    <string name="screen_report_history_summary">Requirements: %1$s</string>
+    <string name="screen_report_history_met" tools:ignore="PluralsCandidate">%1$d met</string>
+    <string name="screen_report_history_failed" tools:ignore="PluralsCandidate">%1$d failed</string>
+    <string name="screen_report_history_to_check">%1$d to check</string>
+
+    <string name="screen_stock_title">Stock baseline</string>
+    <string name="screen_stock_none">No stock capture imported. Import one to compare this ROM with stock.</string>
+    <string name="screen_stock_header">%1$s · Android %2$s · %3$s</string>
+    <string name="screen_stock_cpu_ranges">%1$d CPU ranges</string>
+    <plurals name="screen_stock_sensors">
+        <item quantity="one">%1$d sensor</item>
+        <item quantity="other">%1$d sensors</item>
+    </plurals>
+    <plurals name="screen_stock_codecs">
+        <item quantity="one">%1$d codec format</item>
+        <item quantity="other">%1$d codec formats</item>
+    </plurals>
+    <string name="screen_stock_basic_only">Basic device profile only</string>
+    <string name="screen_stock_import">Import stock file</string>
+    <string name="screen_stock_capture_hint">On stock ROM, capture a baseline and keep a copy off the phone before changing ROMs.</string>
+    <string name="screen_stock_capture">Capture this ROM</string>
+    <string name="screen_stock_checking">Checking %1$s (%2$d/%3$d)</string>
+    <string name="screen_stock_reading">Reading stock data…</string>
+
+    <string name="screen_packs_title">Device packs</string>
+    <string name="screen_packs_intro">A device pack is a JSON file from the ROM maintainer: stock profile values, extra tests, granted exceptions and theme hints. The app looks in %1$s, or you can import one.</string>
+    <string name="screen_packs_dirs_separator">" and "</string>
+    <string name="screen_packs_import">Import a pack</string>
+    <string name="screen_packs_empty">No pack found for this device.</string>
+    <string name="screen_packs_not_imported">Pack not imported</string>
+    <string name="screen_packs_ok">OK</string>
+    <string name="screen_packs_badge_invalid">Invalid</string>
+    <string name="screen_packs_badge_enabled">Enabled</string>
+    <string name="screen_packs_badge_not_for_build">Not for this build</string>
+    <string name="screen_packs_badge_not_enabled">Not enabled</string>
+    <string name="screen_packs_summary">%1$s for %2$s%3$s. %4$s, %5$s.</string>
+    <plurals name="screen_packs_tests">
+        <item quantity="one">%1$d test</item>
+        <item quantity="other">%1$d tests</item>
+    </plurals>
+    <plurals name="screen_packs_waivers">
+        <item quantity="one">%1$d waiver</item>
+        <item quantity="other">%1$d waivers</item>
+    </plurals>
+    <string name="screen_packs_summary_maintainer">, by %1$s</string>
+    <string name="screen_packs_disable">Disable</string>
+    <string name="screen_packs_review_enable">Review and enable</string>
+    <string name="screen_packs_remove">Remove</string>
+    <string name="screen_packs_enable_title">Enable %1$s?</string>
+    <string name="screen_packs_no_actions">This pack runs no commands and opens no screens.</string>
+    <string name="screen_packs_actions">This pack can run or open the following. Shell commands go through Shizuku and passed the read-only allowlist.</string>
+    <string name="screen_packs_profile_values">Stock profile values it sets:</string>
+    <string name="screen_packs_waivers">Granted exceptions:</string>
+    <string name="screen_packs_theme">Theme: %1$s</string>
+    <string name="screen_packs_theme_accent">accent %1$s</string>
+    <string name="screen_packs_theme_corners">corners x%1$s</string>
+    <string name="screen_packs_theme_font">font %1$s</string>
+    <string name="screen_packs_theme_icon">%1$s launcher icon</string>
+    <string name="screen_packs_enable">Enable</string>
+    <string name="screen_packs_cancel">Cancel</string>
+    <string name="screen_packs_origin_system">Shipped with the ROM</string>
+    <string name="screen_packs_origin_imported">Imported</string>
+    <string name="screen_packs_origin_path">%1$s: %2$s</string>
+    <string name="screen_stock_transfer_failed">Stock transfer failed</string>
+    <string name="screen_stock_imported">Stock capture imported. Comparisons updated.</string>
+    <string name="screen_stock_saved">Stock capture saved. Import it on the ROM you want to test.</string>
+</resources>

@@ -20,12 +20,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.catalog.Level
 import io.github.rthery.devicechecker.data.TestState
 
@@ -62,12 +64,13 @@ fun TestState.colors(): StateColors {
 @Composable
 fun StateDot(state: TestState, modifier: Modifier = Modifier) {
     val colors = state.colors()
+    val label = stringResource(state.labelRes)
     Box(
         modifier
             .size(32.dp)
             .background(colors.container, CircleShape)
             .border(1.5.dp, colors.border, CircleShape)
-            .semantics { contentDescription = state.label },
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         when (state) {
@@ -78,7 +81,7 @@ fun StateDot(state: TestState, modifier: Modifier = Modifier) {
             TestState.RUNNING -> CircularProgressIndicator(Modifier.size(18.dp), color = colors.content, strokeWidth = 2.5.dp)
             TestState.QUEUED -> Text("…", color = colors.content, fontWeight = FontWeight.Bold)
             TestState.NA -> Text("/", color = colors.content, fontWeight = FontWeight.Bold)
-            TestState.WAIVED -> Text("W", color = colors.content, fontWeight = FontWeight.Bold)
+            TestState.WAIVED -> Text(stringResource(R.string.tests_state_waived_glyph), color = colors.content, fontWeight = FontWeight.Bold)
             TestState.NOT_RUN -> Text("–", color = colors.content, fontWeight = FontWeight.Bold)
         }
     }

@@ -32,11 +32,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.checks.Access
 import io.github.rthery.devicechecker.checks.CheckResult
@@ -85,7 +88,7 @@ internal fun TestDetailContent(
     if (showingRawOutput && result != null) {
         val chunks = remember(result.details) { result.details.chunked(2000) }
         Column {
-            TextButton(onClick = { showingRawOutput = false }) { Text("Back to test details") }
+            TextButton(onClick = { showingRawOutput = false }) { Text(stringResource(R.string.tests_detail_back)) }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp),
                 state = outputListState, contentPadding = PaddingValues(20.dp),
@@ -107,8 +110,8 @@ internal fun TestDetailContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     val colors = state.colors()
-                    Chip(state.label, colors.container, colors.content, colors.border)
-                    Chip(test.kind.label)
+                    Chip(stringResource(state.labelRes), colors.container, colors.content, colors.border)
+                    Chip(stringResource(test.kind.labelRes))
                     LevelPill(test.level, Modifier.align(Alignment.CenterVertically))
                 }
                 Text(test.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -116,36 +119,35 @@ internal fun TestDetailContent(
         }
 
         item(key = "requirements", contentType = "section") {
-            Section(if (test.requirements.size > 1) "Requirements it covers" else "Requirement") {
+            Section(stringResource(if (test.requirements.size > 1) R.string.tests_detail_requirements else R.string.tests_detail_requirement)) {
                 test.requirements.forEach { requirement ->
                     Text("${requirement.level.label}: ${requirement.text}", style = MaterialTheme.typography.bodyLarge)
                     requirement.note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
                 test.scopeLabel?.let { Hint(it) }
                 Hint(
-                    test.source?.let { "From the device pack $it" }
-                        ?: test.requirements.firstNotNullOfOrNull { it.reference }?.let { "From the $it" }
-                        ?: "From the ${RequirementCatalog.SOURCE_TITLE}"
+                    test.source?.let { stringResource(R.string.tests_detail_from_pack, it) }
+                        ?: stringResource(R.string.tests_detail_from_reference, test.requirements.firstNotNullOfOrNull { it.reference } ?: RequirementCatalog.SOURCE_TITLE)
                 )
                 test.requirements.firstNotNullOfOrNull { catalog.replacedBy(it.id) }?.let { replaced ->
-                    Hint("Replaces the built-in requirement: ${replaced.level.label}: ${replaced.text}")
+                    Hint(stringResource(R.string.tests_detail_replaces, replaced.level.label, replaced.text))
                 }
             }
         }
 
         waiver?.let {
             item(key = "waiver", contentType = "section") {
-                Section("Granted exception") {
+                Section(stringResource(R.string.tests_detail_exception)) {
                     Text(it.reason, style = MaterialTheme.typography.bodyLarge)
                     it.reference?.let { reference -> Hint(reference) }
-                    test.requirements.firstNotNullOfOrNull { requirement -> catalog.waivedBy(requirement.id) }?.let { pack -> Hint("Waived by $pack") }
+                    test.requirements.firstNotNullOfOrNull { requirement -> catalog.waivedBy(requirement.id) }?.let { pack -> Hint(stringResource(R.string.tests_detail_waived_by, pack)) }
                 }
             }
         }
 
         if (test.how.isNotEmpty()) {
             item(key = "how", contentType = "section") {
-                Section(if (test.kind == TestKind.OFF_DEVICE || test.isRequirementOnly) "How to check" else "What the app does") {
+                Section(stringResource(if (test.kind == TestKind.OFF_DEVICE || test.isRequirementOnly) R.string.tests_detail_how_to_check else R.string.tests_detail_what_app_does)) {
                     test.how.forEachIndexed { index, step ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                             Box(
@@ -163,25 +165,25 @@ internal fun TestDetailContent(
 
         if (showingProgress || state == TestState.RUNNING || state == TestState.QUEUED) {
             item(key = "progress", contentType = "section") {
-                Section("Running ${test.title}") {
+                Section(stringResource(R.string.tests_detail_running, test.title)) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Text(test.how.firstOrNull() ?: "Checking the device. Please wait.")
+                    Text(test.how.firstOrNull() ?: stringResource(R.string.tests_detail_please_wait))
                 }
             }
         }
 
         if (result != null && !showingProgress) {
             item(key = "result", contentType = "section") {
-                Section("${if (completed) "Done" else "Last result"} · ${WHEN_FORMAT.format(Instant.ofEpochMilli(result.timestamp))}") {
+                Section(stringResource(if (completed) R.string.tests_detail_done else R.string.tests_detail_last_result, WHEN_FORMAT.format(Instant.ofEpochMilli(result.timestamp)))) {
                     Text(result.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                     if (result.details.isNotBlank()) {
                         TextButton(onClick = { showingRawOutput = true }) {
-                            Text("Show raw output (${result.details.length} characters)")
+                            Text(pluralStringResource(R.plurals.tests_detail_raw_output, result.details.length, result.details.length))
                         }
                     }
                     when {
-                        result.byTester -> Hint("Set by the tester")
-                        result.access == Access.SHIZUKU -> Hint("Read through Shizuku")
+                        result.byTester -> Hint(stringResource(R.string.tests_detail_by_tester))
+                        result.access == Access.SHIZUKU -> Hint(stringResource(R.string.tests_detail_through_shizuku))
                     }
                 }
             }
@@ -190,13 +192,13 @@ internal fun TestDetailContent(
         if (state == TestState.NEEDS && !showingProgress && test.kind == TestKind.AUTO) {
             item(key = "next", contentType = "section") {
                 val related = test.requirements.flatMap { it.testIds }.distinct().filter { it != test.id }.mapNotNull { catalog.interactiveById[it] }
-                Section("Next step") {
+                Section(stringResource(R.string.tests_detail_next_step)) {
                     if (related.isEmpty()) {
-                        Text("Compare the result with stock, then record your verdict below.")
+                        Text(stringResource(R.string.tests_detail_compare))
                     } else {
                         related.forEach { next ->
-                            Text(if (next.id == "nfc.tag") "Hold a tag or card against the back of the phone." else next.summary)
-                            TestActionButton(label = handsOnLabel(next.id, next.manual), handsOn = true,
+                            Text(if (next.id == "nfc.tag") stringResource(R.string.tests_detail_nfc_hint) else next.summary)
+                            TestActionButton(label = stringResource(handsOnLabel(next.id, next.manual)), handsOn = true,
                                 onClick = { onOpenTest(next.id) }, modifier = Modifier.fillMaxWidth())
                         }
                     }
@@ -208,7 +210,7 @@ internal fun TestDetailContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
                     test.kind == TestKind.AUTO -> TestActionButton(
-                        label = if (showingProgress) "Running…" else if (result == null) "Run check" else "Run again",
+                        label = stringResource(if (showingProgress) R.string.tests_detail_running_ellipsis else if (result == null) R.string.tests_detail_run_check else R.string.tests_detail_run_again),
                         handsOn = false,
                         onClick = {
                             runTimestamp = result?.timestamp
@@ -220,27 +222,27 @@ internal fun TestDetailContent(
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     )
                     !test.isRequirementOnly -> TestActionButton(
-                        label = handsOnLabel(test.id, test.kind == TestKind.MANUAL),
+                        label = stringResource(handsOnLabel(test.id, test.kind == TestKind.MANUAL)),
                         handsOn = true, onClick = { onOpenTest(test.id) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(Verdict.PASS to "Mark passed", Verdict.FAIL to "Mark failed", Verdict.NOT_APPLICABLE to "Not applicable").forEach { (verdict, label) ->
+                    listOf(Verdict.PASS to R.string.tests_detail_mark_passed, Verdict.FAIL to R.string.tests_detail_mark_failed, Verdict.NOT_APPLICABLE to R.string.tests_detail_not_applicable).forEach { (verdict, label) ->
                         OutlinedButton(
                             onClick = {
                                 viewModel.markTest(test, verdict)
                                 onDismiss()
                             },
                             modifier = Modifier.weight(1f).heightIn(min = 44.dp),
-                        ) { Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2) }
+                        ) { Text(stringResource(label), style = MaterialTheme.typography.labelMedium, maxLines = 2) }
                     }
                 }
                 if (result?.byTester == true || (test.isRequirementOnly && state != TestState.NOT_RUN)) {
                     TextButton(onClick = {
                         viewModel.markTest(test, Verdict.UNTESTED)
                         onDismiss()
-                    }) { Text("Clear my verdict") }
+                    }) { Text(stringResource(R.string.tests_detail_clear_verdict)) }
                 }
             }
         }

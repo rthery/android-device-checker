@@ -1,20 +1,23 @@
 package io.github.rthery.devicechecker.data
 
+import androidx.annotation.StringRes
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.pack.Waiver
+import io.github.rthery.devicechecker.ui.UiText
 
-enum class TestState(val label: String) {
-    PASS("Passed"),
-    FAIL("Failed"),
-    WARN("Check this"),
-    NEEDS("Needs you"),
-    NOT_RUN("Not run"),
-    NA("N/A"),
-    WAIVED("Waived"),
-    RUNNING("Running"),
-    QUEUED("Waiting"),
+enum class TestState(@StringRes val labelRes: Int) {
+    PASS(R.string.tests_state_pass),
+    FAIL(R.string.tests_state_fail),
+    WARN(R.string.tests_state_warn),
+    NEEDS(R.string.tests_state_needs),
+    NOT_RUN(R.string.tests_state_not_run),
+    NA(R.string.tests_state_na),
+    WAIVED(R.string.tests_state_waived),
+    RUNNING(R.string.tests_state_running),
+    QUEUED(R.string.tests_state_queued),
 }
 
 // These probes only ask for the corresponding functional test after detecting hardware.
@@ -63,17 +66,22 @@ fun TestState.needsYou(kind: TestKind): Boolean =
     this == TestState.NEEDS || (this == TestState.NOT_RUN && (kind == TestKind.GUIDED || kind == TestKind.MANUAL))
 
 /** One line under the title: the last summary, or what to do next. */
-fun lineFor(test: UnifiedTest, state: TestState, result: CheckResult?, waiver: Waiver? = null): String = when (state) {
-    TestState.WAIVED -> "Waived: ${waiver?.reason.orEmpty()}"
-    TestState.RUNNING -> "Running..."
-    TestState.QUEUED -> "Waiting"
-    TestState.PASS -> if (result?.status == CheckStatus.INFO) "Confirmed by the follow-up test" else result?.summary ?: state.label
-    TestState.NA -> result?.summary ?: test.scopeLabel ?: "Marked not applicable"
-    TestState.NOT_RUN -> when (test.kind) {
-        TestKind.AUTO -> "Not run yet"
-        TestKind.GUIDED -> "Not run yet. Tap Start"
-        TestKind.MANUAL -> if (test.isRequirementOnly) "Check it yourself, then mark it" else "Steps with shortcuts"
-        TestKind.OFF_DEVICE -> "Check in the source tree or project"
+fun lineFor(test: UnifiedTest, state: TestState, result: CheckResult?, waiver: Waiver? = null): UiText {
+    val summary = result?.summary?.let(UiText::Raw)
+    return when (state) {
+        TestState.WAIVED -> UiText.Res(R.string.tests_line_waived, listOf(waiver?.reason.orEmpty()))
+        TestState.RUNNING -> UiText.Res(R.string.tests_line_running)
+        TestState.QUEUED -> UiText.Res(R.string.tests_line_queued)
+        TestState.PASS -> if (result?.status == CheckStatus.INFO) UiText.Res(R.string.tests_line_confirmed) else summary ?: UiText.Res(state.labelRes)
+        TestState.NA -> summary ?: test.scopeLabel?.let(UiText::Raw) ?: UiText.Res(R.string.tests_line_marked_na)
+        TestState.NOT_RUN -> UiText.Res(
+            when (test.kind) {
+                TestKind.AUTO -> R.string.tests_line_not_run_auto
+                TestKind.GUIDED -> R.string.tests_line_not_run_guided
+                TestKind.MANUAL -> if (test.isRequirementOnly) R.string.tests_line_not_run_requirement else R.string.tests_line_not_run_manual
+                TestKind.OFF_DEVICE -> R.string.tests_line_not_run_off_device
+            },
+        )
+        else -> summary ?: UiText.Res(state.labelRes)
     }
-    else -> result?.summary ?: state.label
 }

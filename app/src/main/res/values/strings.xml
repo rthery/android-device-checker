@@ -1,4 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Android Device Checker</string>
+
+    <string name="step_works">Works</string>
+    <string name="step_broken">Broken</string>
+    <string name="step_cant_test">Can\'t test</string>
+    <string name="shortcut_failed">Could not open this screen on this build.</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="grant_permission">Grant permission</string>
+    <string name="save_result">Save result</string>
+    <string name="shortcut_open_settings">Open settings</string>
+    <string name="step_run_command">Run: %1$s</string>
+    <string name="shortcut_wifi">Wi-Fi settings</string>
+    <string name="shortcut_internet">Internet panel</string>
+    <string name="shortcut_tethering">Hotspot and tethering</string>
+    <string name="shortcut_bluetooth">Bluetooth settings</string>
+    <string name="shortcut_usb">Connected devices &gt; USB</string>
+    <string name="shortcut_storage">Storage settings</string>
+    <string name="shortcut_nfc">NFC settings</string>
+    <string name="shortcut_location">Location settings</string>
+    <string name="shortcut_fingerprint_enroll">Enroll a fingerprint</string>
+    <string name="shortcut_dialer">Open dialer</string>
+    <string name="shortcut_messaging">Open messaging</string>
+    <string name="shortcut_sims">SIM settings</string>
+    <string name="shortcut_reset">Reset options</string>
+    <string name="shortcut_updater">Open Updater</string>
+    <string name="shortcut_battery_usage">Battery usage</string>
+    <string name="shortcut_microg">microG settings</string>
+    <string name="shortcut_privacy">Privacy settings</string>
+    <string name="shortcut_sound">Sound settings</string>
 </resources>

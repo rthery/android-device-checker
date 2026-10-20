@@ -2,6 +2,7 @@ package io.github.rthery.devicechecker
 
 import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.data.Category
+import io.github.rthery.devicechecker.data.SummaryPart
 import io.github.rthery.devicechecker.data.TestCatalog
 import io.github.rthery.devicechecker.data.TestState
 import io.github.rthery.devicechecker.data.bundleState
@@ -54,7 +55,10 @@ class TestBundlesTest {
     fun categorySummaryAccountsForPassedPendingWarningsAndSkippedChecks() {
         val tests = catalog.all.take(6)
         val states = tests.mapIndexed { index, test -> test.id to listOf(TestState.PASS, TestState.FAIL, TestState.WARN, TestState.NOT_RUN, TestState.NA, TestState.WAIVED)[index] }.toMap()
-        assertEquals("1 failed · 1 to check · 1 not run · 1 passed · 1 N/A · 1 waived", testSummary(tests, states))
+        assertEquals(
+            listOf(SummaryPart.FAILED, SummaryPart.TO_CHECK, SummaryPart.NOT_RUN, SummaryPart.PASSED, SummaryPart.NA, SummaryPart.WAIVED).map { it to 1 },
+            testSummary(tests, states),
+        )
     }
 
     @Test

@@ -2,6 +2,8 @@ package io.github.rthery.devicechecker.pack
 
 import android.content.ComponentName
 import android.content.Intent
+import io.github.rthery.devicechecker.R
+import io.github.rthery.devicechecker.ui.UiText
 import io.github.rthery.devicechecker.catalog.Requirement
 import io.github.rthery.devicechecker.catalog.TestMode
 import io.github.rthery.devicechecker.checks.Access
@@ -119,20 +121,20 @@ private suspend fun CheckContext.runShellTest(test: ShellTest): CheckResult {
 
 private fun interactive(id: String, test: PackTest, packName: String): InteractiveTest = when (test) {
     is SettingsTest -> InteractiveTest(id, test.title, test.description.orEmpty(), manual = true, source = packName) { scope ->
-        GuidedSteps(scope, test.description ?: test.question, listOf(Step(test.question, shortcut = test.intent.toShortcut())))
+        GuidedSteps(scope, UiText.Raw(test.description ?: test.question), listOf(Step(test.question, shortcut = test.intent.toShortcut())))
     }
     is GuidedTest -> InteractiveTest(id, test.title, test.description.orEmpty(), manual = true, source = packName) { scope ->
-        GuidedSteps(scope, test.intro, test.steps.map { step -> Step(step.text, step.shortcut?.toShortcut(), step.command?.let(::commandAction)) })
+        GuidedSteps(scope, UiText.Raw(test.intro), test.steps.map { step -> Step(step.text, step.shortcut?.toShortcut(), step.command?.let(::commandAction)) })
     }
     else -> error("Not an interactive test")
 }
 
-private fun IntentSpec.toShortcut() = Shortcut(label ?: "Open settings") {
+private fun IntentSpec.toShortcut() = Shortcut(label?.let { UiText.Raw(it) } ?: UiText.Res(R.string.shortcut_open_settings)) {
     val intent = if (packageName != null && className != null) Intent().setComponent(ComponentName(packageName, className)) else Intent(action)
     listOf(intent)
 }
 
-private fun commandAction(command: String) = StepAction("Run: $command") {
+private fun commandAction(command: String) = StepAction(UiText.Res(R.string.step_run_command, listOf(command))) {
     if (!CommandAllowlist.isAllowed(command)) return@StepAction "Refused: not a read-only command"
     val shell = privilegedShell ?: return@StepAction "Needs Shizuku. Connect it from the home screen."
     shell.exec(command).output.ifBlank { "(no output)" }

@@ -22,12 +22,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.checks.CheckResult
+import io.github.rthery.devicechecker.data.SummaryPart
 import io.github.rthery.devicechecker.data.TestBundle
 import io.github.rthery.devicechecker.data.TestKind
 import io.github.rthery.devicechecker.data.TestState
@@ -36,18 +40,22 @@ import io.github.rthery.devicechecker.data.testSummary
 import io.github.rthery.devicechecker.pack.Waiver
 
 @Composable
+internal fun summaryText(parts: List<Pair<SummaryPart, Int>>): String =
+    parts.map { (part, count) -> pluralStringResource(part.res, count, count) }.joinToString(" · ")
+
+@Composable
 internal fun BundleRow(title: String, count: Int, summary: String, state: TestState, onOpen: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
             .semantics { stateDescription = summary }
-            .clickable(role = Role.Button, onClickLabel = "Open $title", onClick = onOpen)
+            .clickable(role = Role.Button, onClickLabel = stringResource(R.string.tests_bundle_open, title), onClick = onOpen)
             .padding(12.dp).heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StateDot(state)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text("$count checks · $summary", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.tests_bundle_count, count, count, summary), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
     }
@@ -76,11 +84,12 @@ internal fun TestBundleContent(
     ) {
         item(key = "header", contentType = "header") {
             Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(bundle.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("${if (changed && !running) "Results updated · " else ""}${testSummary(bundle.tests, states)}", style = MaterialTheme.typography.bodyMedium)
+                Text(bundle.title.resolve(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                val summary = summaryText(testSummary(bundle.tests, states))
+                Text(if (changed && !running) stringResource(R.string.tests_bundle_updated, summary) else summary, style = MaterialTheme.typography.bodyMedium)
                 if (running) LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (automatic > 0) TestActionButton(
-                    label = "Run $automatic checks", handsOn = false, onClick = onRunChecks,
+                    label = pluralStringResource(R.plurals.tests_bundle_run_checks, automatic, automatic), handsOn = false, onClick = onRunChecks,
                     enabled = !runActive, modifier = Modifier.fillMaxWidth(),
                 )
             }

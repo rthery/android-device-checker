@@ -1,5 +1,6 @@
 package io.github.rthery.devicechecker.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.rthery.devicechecker.R
 
 /** An icon and fill distinguish hands-on actions even without color perception. */
 @Composable
@@ -42,16 +44,17 @@ fun TestActionButton(label: String, handsOn: Boolean, onClick: () -> Unit, modif
     )
 }
 
-fun handsOnLabel(id: String, manual: Boolean = false): String = when (id) {
-    "nfc.tag" -> "Scan a tag"
-    "audio.output" -> "Listen"
-    "audio.input" -> "Record audio"
-    "camera.capture" -> "Take photos"
-    "video.record" -> "Record video"
-    "sensors.motion" -> "Move phone"
-    "fingerprint.auth" -> "Try fingerprint"
-    "gnss.fix" -> "Find GPS fix"
-    "bluetooth.scan" -> "Scan devices"
-    "ir.transmit" -> "Try remote"
-    else -> if (manual) "Follow steps" else "Start test"
+@StringRes
+fun handsOnLabel(id: String, manual: Boolean = false): Int = when (id) {
+    "nfc.tag" -> R.string.tests_hands_on_nfc
+    "audio.output" -> R.string.tests_hands_on_listen
+    "audio.input" -> R.string.tests_hands_on_record_audio
+    "camera.capture" -> R.string.tests_hands_on_photos
+    "video.record" -> R.string.tests_hands_on_video
+    "sensors.motion" -> R.string.tests_hands_on_motion
+    "fingerprint.auth" -> R.string.tests_hands_on_fingerprint
+    "gnss.fix" -> R.string.tests_hands_on_gps
+    "bluetooth.scan" -> R.string.tests_hands_on_bluetooth
+    "ir.transmit" -> R.string.tests_hands_on_ir
+    else -> if (manual) R.string.tests_hands_on_follow_steps else R.string.tests_hands_on_start
 }

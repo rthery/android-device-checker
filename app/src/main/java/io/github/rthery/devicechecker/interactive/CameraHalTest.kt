@@ -14,13 +14,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.checks.CheckContext
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.checks.fail
 import io.github.rthery.devicechecker.checks.info
 import io.github.rthery.devicechecker.checks.warn
+import io.github.rthery.devicechecker.ui.UiText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.io.File
@@ -30,9 +33,9 @@ internal val cameraHalTest = InteractiveTest(
     "Lists the camera HALs, takes photos and records video with sound through Camera2 and legacy Camera1 on every accessible camera. Review the saved media before passing. Public APIs cannot select an alternate HAL version.",
 ) { scope -> CameraHalScreen(scope) }
 
-internal suspend fun CheckContext.runCameraHalCoverage(onStep: (String) -> Unit = {}): CheckResult {
+internal suspend fun CheckContext.runCameraHalCoverage(onStep: (UiText) -> Unit = {}): CheckResult {
     val dir = artifactsFor("hw.camera.hal") ?: return warn("No reports folder available")
-    onStep("Reading the camera HAL inventory")
+    onStep(UiText.Res(R.string.camera_hal_step_inventory))
     val inventory = read("dumpsys media.camera", { "Camera HAL device" in it })
     val parsed = parseCameraHalInventory(inventory.output.orEmpty())
     val lines = mutableListOf<String>()
@@ -47,9 +50,8 @@ internal suspend fun CheckContext.runCameraHalCoverage(onStep: (String) -> Unit 
     val targets = discoverCameras(context.getSystemService(CameraManager::class.java))
     if (targets.isEmpty()) return fail("No Camera2 cameras exposed", lines.joinToString("\n"))
     targets.forEachIndexed { index, target ->
-        val position = "camera ${index + 1} of ${targets.size}"
         try {
-            onStep("Camera2: ${target.label} photo ($position)")
+            onStep(UiText.Res(R.string.camera_hal_step_camera2_photo, listOf(target.label, index + 1, targets.size)))
             val photo = takePhoto(context, target)
             lines += "Camera2 ${target.label} photo: ${photo.status}: ${photo.note}"
             failed = failed || photo.status == CheckStatus.FAIL
@@ -59,7 +61,7 @@ internal suspend fun CheckContext.runCameraHalCoverage(onStep: (String) -> Unit 
                 writeExifRotation(file, photo.rotation)
                 artifacts += relative(file)
             }
-            onStep("Camera2: ${target.label} video with sound ($position)")
+            onStep(UiText.Res(R.string.camera_hal_step_camera2_video, listOf(target.label, index + 1, targets.size)))
             val clip = recordClip(context, target)
             lines += "Camera2 ${target.label} video: ${clip.status}: ${clip.note}"
             failed = failed || clip.status == CheckStatus.FAIL
@@ -78,7 +80,7 @@ internal suspend fun CheckContext.runCameraHalCoverage(onStep: (String) -> Unit 
             lines += "Camera2 ${target.label}: FAIL ${e.message}"
         }
     }
-    val legacy = runLegacyCameraProbe(context) { id, count -> onStep("Camera1: camera $id photo and video (camera ${id + 1} of $count)") }
+    val legacy = runLegacyCameraProbe(context) { id, count -> onStep(UiText.Res(R.string.camera_hal_step_camera1, listOf(id, id + 1, count))) }
     lines += legacy.details
     artifacts += legacy.artifacts
     failed = failed || legacy.status == CheckStatus.FAIL || legacy.status == CheckStatus.ERROR
@@ -94,15 +96,15 @@ internal suspend fun CheckContext.runCameraHalCoverage(onStep: (String) -> Unit 
 
 @Composable
 private fun CameraHalScreen(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), "Testing camera interfaces needs camera and microphone access.") {
+    RequirePermissions(listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), stringResource(R.string.camera_hal_permission)) {
         var result by remember { mutableStateOf<CheckResult?>(null) }
         var running by remember { mutableStateOf(false) }
-        var step by remember { mutableStateOf("") }
+        var step by remember { mutableStateOf<UiText?>(null) }
         var playing by remember { mutableStateOf<String?>(null) }
         val coroutine = rememberCoroutineScope()
         val root = remember { File(scope.activity.getExternalFilesDir(null), "reports") }
         Column {
-            Text("Use a well-lit scene. This tests each camera through both app APIs; it cannot switch HAL versions. Connect Shizuku to read the HAL inventory.")
+            Text(stringResource(R.string.camera_hal_instructions))
             Button(enabled = !running, onClick = {
                 coroutine.launch {
                     running = true
@@ -111,13 +113,13 @@ private fun CameraHalScreen(scope: TestScope) {
                         result = CheckContext(scope.activity, scope.profile, scope.privilegedShell, null, root).runCameraHalCoverage { step = it }
                     } finally {
                         running = false
-                        step = ""
+                        step = null
                     }
                 }
-            }) { Text(if (running) "Testing camera interfaces…" else "Run coverage test") }
+            }) { Text(stringResource(if (running) R.string.camera_hal_running else R.string.camera_hal_run)) }
             if (running) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 8.dp))
-                Text(step.ifEmpty { "Starting…" })
+                Text(step?.resolve() ?: stringResource(R.string.camera_hal_starting))
             }
             result?.let { outcome ->
                 Text(outcome.summary)
@@ -130,13 +132,13 @@ private fun CameraHalScreen(scope: TestScope) {
                         bitmap?.let { Image(it.asImageBitmap(), contentDescription = file.name, modifier = Modifier.size(240.dp, 180.dp)) }
                     } else if (file.extension == "mp4") {
                         if (playing == path) key(path) { ClipPlayer(file) { playing = null } }
-                        Button(onClick = { playing = path }) { Text("Play with sound") }
+                        Button(onClick = { playing = path }) { Text(stringResource(R.string.camera_play_with_sound)) }
                     }
                 }
                 if (outcome.status == CheckStatus.FAIL || outcome.status == CheckStatus.ERROR || "HAL inventory unavailable." in outcome.details) {
-                    Button(onClick = { scope.finish(outcome) }) { Text("Save result") }
+                    Button(onClick = { scope.finish(outcome) }) { Text(stringResource(R.string.save_result)) }
                 } else {
-                    YesNo("Have you reviewed every photo and clip, including sound, and confirmed all exposed HAL versions are covered?") { ok ->
+                    YesNo(stringResource(R.string.camera_hal_question)) { ok ->
                         scope.finish(if (ok) outcome.copy(status = CheckStatus.PASS, summary = "Tester verified camera HAL/API coverage and all saved media", byTester = true)
                         else outcome.copy(status = CheckStatus.FAIL, summary = "Tester reported incomplete coverage or a media problem", byTester = true))
                     }

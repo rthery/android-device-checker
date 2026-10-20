@@ -42,7 +42,16 @@ jobs:
             echo "versionCode $code should be $expected for $name" >&2
             exit 1
           fi
+          notes="fastlane/metadata/android/en-US/changelogs/$code.txt"
+          if [[ ! -s "$notes" ]]; then
+            echo "Missing release notes: $notes" >&2
+            exit 1
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
+
+      - name: Unit tests and lint
+        run: ./gradlew testDebugUnitTest lintDebug
 
       - name: Decode keystore
         env:
@@ -69,5 +78,5 @@ jobs:
         run: >
           gh release create "$GITHUB_REF_NAME"
           --title "$GITHUB_REF_NAME"
-          --generate-notes
+          --notes-file "${{ steps.version.outputs.notes }}"
           "android-device-checker-${{ steps.version.outputs.name }}.apk"

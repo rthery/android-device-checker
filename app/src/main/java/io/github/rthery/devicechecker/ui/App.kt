@@ -1,6 +1,7 @@
 package io.github.rthery.devicechecker.ui
 
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
@@ -30,16 +31,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.pack.ui.PacksScreen
 import io.github.rthery.devicechecker.pack.ui.shapesFor
 import io.github.rthery.devicechecker.pack.ui.withHints
 
-enum class Tab(val label: String, val icon: ImageVector) {
-    TESTS("Tests", Icons.AutoMirrored.Filled.List),
-    REPORT("Report", Icons.Filled.Share),
-    DEVICE("Device", Icons.Filled.Settings),
+enum class Tab(@StringRes val label: Int, val icon: ImageVector) {
+    TESTS(R.string.screen_tab_tests, Icons.AutoMirrored.Filled.List),
+    REPORT(R.string.screen_tab_report, Icons.Filled.Share),
+    DEVICE(R.string.screen_tab_device, Icons.Filled.Settings),
 }
 
 private enum class Pushed { NONE, PROFILE, PACKS, ABOUT }
@@ -108,7 +111,7 @@ fun App(viewModel: MainViewModel) {
                                     selected = tab == entry,
                                     onClick = { tab = entry },
                                     icon = { Icon(entry.icon, contentDescription = null) },
-                                    label = { Text(entry.label) },
+                                    label = { Text(stringResource(entry.label)) },
                                 )
                             }
                         }

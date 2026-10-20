@@ -104,10 +104,13 @@ val extraChecks = listOf(
 
     Check("battery.capacity", "Battery capacity") {
         val read = read(
-            "for f in charge_full_design charge_full cycle_count; do v=\$(cat /sys/class/power_supply/battery/\$f 2>/dev/null) && echo \"\$f=\$v\"; done; true"
+            "for d in battery bms; do for f in charge_full_design charge_full cycle_count; do " +
+                "v=\$(cat /sys/class/power_supply/\$d/\$f 2>/dev/null) && echo \"\$d/\$f=\$v\"; done; done; true"
         ) { it.contains("charge_full") }
-        val output = read.output ?: return@Check needsShell()
-        val values = output.lines().mapNotNull { line -> line.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1].trim().toLongOrNull() } }.toMap()
+        val output = read.output
+            ?: return@Check if (hasPrivilegedShell) warn("No charge_full_design under the battery or bms power supply") else needsShell()
+        val values = output.lines().mapNotNull { line -> line.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0].substringAfter('/') to it[1].trim().toLongOrNull() } }
+            .filter { it.second != null }.distinctBy { it.first }.toMap()
         val design = values["charge_full_design"]?.let(::toMilliAmpHours)
         val full = values["charge_full"]?.let(::toMilliAmpHours)
         val health = if (design != null && full != null && design > 0) " (${full * 100 / design} % of design)" else ""

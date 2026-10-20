@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="camera_photo_permission">Taking photos needs the camera permission.</string>
+    <plurals name="camera_photo_instructions">
+        <item quantity="one">Point the phone at something with detail and good light, then start. The camera takes one photo.</item>
+        <item quantity="other">Point the phone at something with detail and good light, then start. Each of the %1$d cameras takes one photo.</item>
+    </plurals>
+    <string name="camera_photo_capturing">Capturing %1$d/%2$d…</string>
+    <string name="camera_photo_take">Take photos</string>
+    <string name="camera_photo_question">Do the photos look right (sharp, correct colors, the expected lens)?</string>
+    <string name="camera_photo_look_right">Look right</string>
+    <string name="camera_something_wrong">Something is wrong</string>
+
+    <string name="camera_video_permission">Recording video needs the camera and microphone permissions.</string>
+    <string name="camera_video_instructions">Records %1$d s with sound on %2$s, then checks duration, video and audio tracks.</string>
+    <string name="camera_video_recording">Recording…</string>
+    <string name="camera_video_record">Record clips</string>
+    <string name="camera_play_with_sound">Play with sound</string>
+    <string name="camera_video_question">Play each clip. Are the picture and the sound right on all of them?</string>
+    <string name="camera_video_all_right">All right</string>
+
+    <string name="camera_hal_permission">Testing camera interfaces needs camera and microphone access.</string>
+    <string name="camera_hal_instructions">Use a well-lit scene. This tests each camera through both app APIs; it cannot switch HAL versions. Connect Shizuku to read the HAL inventory.</string>
+    <string name="camera_hal_running">Testing camera interfaces…</string>
+    <string name="camera_hal_run">Run coverage test</string>
+    <string name="camera_hal_starting">Starting…</string>
+    <string name="camera_hal_question">Have you reviewed every photo and clip, including sound, and confirmed all exposed HAL versions are covered?</string>
+    <string name="camera_hal_step_inventory">Reading the camera HAL inventory</string>
+    <string name="camera_hal_step_camera2_photo">Camera2: %1$s photo (camera %2$d of %3$d)</string>
+    <string name="camera_hal_step_camera2_video">Camera2: %1$s video with sound (camera %2$d of %3$d)</string>
+    <string name="camera_hal_step_camera1" tools:ignore="PluralsCandidate">Camera1: camera %1$d photo and video (camera %2$d of %3$d)</string>
+
+    <string name="stress_camera_permission">The stress test records video, so it needs the camera and microphone.</string>
+    <string name="stress_camera_instructions">Leave the phone on a table. Each step opens a random camera and takes a photo, records 0.5 to 3 s, closes the camera mid-recording or churns autofocus, with 0.1 to 0.8 s between steps. Then every camera is reopened once.</string>
+    <plurals name="stress_steps">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
+    <string name="stress_running">Running %1$d/%2$d…</string>
+    <string name="stress_start">Start</string>
+    <plurals name="stress_failures_so_far">
+        <item quantity="one">%1$d failure so far</item>
+        <item quantity="other">%1$d failures so far</item>
+    </plurals>
+    <string name="stress_audio_permission">The stress test records from the microphones.</string>
+    <string name="stress_audio_instructions">Short beeps play on the speaker and earpiece while the mics record. Each step is random, with 0.1 to 0.8 s gaps. A first mic buffer slower than %1$d ms fails, since it means the audio HAL is blocking.</string>
+</resources>

@@ -35,8 +35,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.pack.DevicePack
 import io.github.rthery.devicechecker.pack.PackEntry
 import io.github.rthery.devicechecker.pack.PackManager
@@ -63,8 +66,8 @@ fun PacksScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Device packs") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                title = { Text(stringResource(R.string.screen_packs_title)) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.screen_back)) } },
             )
         },
     ) { padding ->
@@ -75,15 +78,14 @@ fun PacksScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "A device pack is a JSON file from the ROM maintainer: stock profile values, extra tests, granted exceptions and theme hints. " +
-                            "The app looks in ${PackManager.SYSTEM_DIRS.joinToString(" and ")}, or you can import one.",
+                        stringResource(R.string.screen_packs_intro, PackManager.SYSTEM_DIRS.joinToString(stringResource(R.string.screen_packs_dirs_separator))),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Button(onClick = { picker.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Import a pack") }
+                    Button(onClick = { picker.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text(stringResource(R.string.screen_packs_import)) }
                 }
             }
             if (entries.isEmpty()) {
-                item { Text("No pack found for this device.", style = MaterialTheme.typography.bodyMedium) }
+                item { Text(stringResource(R.string.screen_packs_empty), style = MaterialTheme.typography.bodyMedium) }
             }
             items(entries, key = { it.key }) { entry ->
                 PackCard(entry, onReview = { reviewing = entry }, onDisable = { onDisable(entry) }, onRemove = { onRemove(entry) })
@@ -104,9 +106,9 @@ fun PacksScreen(
     importErrors?.let { errors ->
         AlertDialog(
             onDismissRequest = onDismissImportErrors,
-            title = { Text("Pack not imported") },
+            title = { Text(stringResource(R.string.screen_packs_not_imported)) },
             text = { ErrorList(errors) },
-            confirmButton = { TextButton(onClick = onDismissImportErrors) { Text("OK") } },
+            confirmButton = { TextButton(onClick = onDismissImportErrors) { Text(stringResource(R.string.screen_packs_ok)) } },
         )
     }
 }
@@ -118,18 +120,24 @@ private fun PackCard(entry: PackEntry, onReview: () -> Unit, onDisable: () -> Un
             val pack = entry.pack
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 when {
-                    pack == null -> Badge("Invalid", MaterialTheme.colorScheme.error)
-                    entry.enabled -> Badge("Enabled", MaterialTheme.colorScheme.primary)
-                    !entry.forThisDevice -> Badge("Not for this build", MaterialTheme.colorScheme.outline)
-                    else -> Badge("Not enabled", MaterialTheme.colorScheme.outline)
+                    pack == null -> Badge(stringResource(R.string.screen_packs_badge_invalid), MaterialTheme.colorScheme.error)
+                    entry.enabled -> Badge(stringResource(R.string.screen_packs_badge_enabled), MaterialTheme.colorScheme.primary)
+                    !entry.forThisDevice -> Badge(stringResource(R.string.screen_packs_badge_not_for_build), MaterialTheme.colorScheme.outline)
+                    else -> Badge(stringResource(R.string.screen_packs_badge_not_enabled), MaterialTheme.colorScheme.outline)
                 }
                 Text(pack?.name ?: entry.file.name, style = MaterialTheme.typography.titleSmall)
             }
-            Text("${entry.origin.label}: ${entry.file.path}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.screen_packs_origin_path, stringResource(entry.origin.label), entry.file.path), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (pack != null) {
                 Text(
-                    "${pack.rom}${pack.romVersion?.let { " $it" }.orEmpty()} for ${pack.devices.joinToString()}" +
-                        "${pack.maintainer?.let { ", by $it" }.orEmpty()}. ${pack.tests.size} test(s), ${pack.waivers.size} waiver(s).",
+                    stringResource(
+                        R.string.screen_packs_summary,
+                        "${pack.rom}${pack.romVersion?.let { " $it" }.orEmpty()}",
+                        pack.devices.joinToString(),
+                        pack.maintainer?.let { stringResource(R.string.screen_packs_summary_maintainer, it) }.orEmpty(),
+                        pluralStringResource(R.plurals.screen_packs_tests, pack.tests.size, pack.tests.size),
+                        pluralStringResource(R.plurals.screen_packs_waivers, pack.waivers.size, pack.waivers.size),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -137,10 +145,10 @@ private fun PackCard(entry: PackEntry, onReview: () -> Unit, onDisable: () -> Un
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
                     pack == null -> Unit
-                    entry.enabled -> OutlinedButton(onClick = onDisable) { Text("Disable") }
-                    entry.forThisDevice -> Button(onClick = onReview) { Text("Review and enable") }
+                    entry.enabled -> OutlinedButton(onClick = onDisable) { Text(stringResource(R.string.screen_packs_disable)) }
+                    entry.forThisDevice -> Button(onClick = onReview) { Text(stringResource(R.string.screen_packs_review_enable)) }
                 }
-                if (entry.origin == PackOrigin.IMPORTED) TextButton(onClick = onRemove) { Text("Remove") }
+                if (entry.origin == PackOrigin.IMPORTED) TextButton(onClick = onRemove) { Text(stringResource(R.string.screen_packs_remove)) }
             }
         }
     }
@@ -151,23 +159,22 @@ private fun ApprovalDialog(pack: DevicePack, onDismiss: () -> Unit, onEnable: ()
     val items = pack.approvalItems()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Enable ${pack.name}?") },
+        title = { Text(stringResource(R.string.screen_packs_enable_title, pack.name)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    if (items.isEmpty()) "This pack runs no commands and opens no screens."
-                    else "This pack can run or open the following. Shell commands go through Shizuku and passed the read-only allowlist.",
+                    stringResource(if (items.isEmpty()) R.string.screen_packs_no_actions else R.string.screen_packs_actions),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 items.forEach { Text(it, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace) }
                 pack.profile?.let { profile ->
                     HorizontalDivider()
-                    Text("Stock profile values it sets:", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.screen_packs_profile_values), style = MaterialTheme.typography.titleSmall)
                     profile.forEach { (key, value) -> Text("$key = $value", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace) }
                 }
                 if (pack.waivers.isNotEmpty()) {
                     HorizontalDivider()
-                    Text("Granted exceptions:", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.screen_packs_waivers), style = MaterialTheme.typography.titleSmall)
                     pack.waivers.forEach { waiver ->
                         val scope = if (waiver.checks.isEmpty()) "" else " (${waiver.checks.joinToString()})"
                         Text("${waiver.requirement}$scope: ${waiver.reason}", style = MaterialTheme.typography.bodySmall)
@@ -176,14 +183,22 @@ private fun ApprovalDialog(pack: DevicePack, onDismiss: () -> Unit, onEnable: ()
                 pack.theme?.let { theme ->
                     HorizontalDivider()
                     Text(
-                        "Theme: " + listOfNotNull(theme.accentSeed?.let { "accent $it" }, theme.cornerScale?.let { "corners x$it" }, theme.fontFamily?.let { "font $it" }, theme.icon?.let { "$it launcher icon" }).joinToString(),
+                        stringResource(
+                            R.string.screen_packs_theme,
+                            listOfNotNull(
+                                theme.accentSeed?.let { stringResource(R.string.screen_packs_theme_accent, it) },
+                                theme.cornerScale?.let { stringResource(R.string.screen_packs_theme_corners, it.toString()) },
+                                theme.fontFamily?.let { stringResource(R.string.screen_packs_theme_font, it) },
+                                theme.icon?.let { stringResource(R.string.screen_packs_theme_icon, it) },
+                            ).joinToString(),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onEnable) { Text("Enable") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onEnable) { Text(stringResource(R.string.screen_packs_enable)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.screen_packs_cancel)) } },
     )
 }
 
