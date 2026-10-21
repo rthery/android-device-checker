@@ -4,17 +4,19 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.hardware.biometrics.BiometricManager
 import android.provider.Settings
+import android.provider.Telephony
 import androidx.annotation.StringRes
 import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.ui.UiText
 
 /** Opens the first intent that resolves, so OEM or version differences fall back gracefully. */
-class Shortcut(val label: UiText, private val intents: () -> List<Intent>) {
-    constructor(@StringRes label: Int, intents: () -> List<Intent>) : this(UiText.Res(label), intents)
+class Shortcut(val label: UiText, private val intents: (Context) -> List<Intent>) {
+    constructor(@StringRes label: Int, intents: (Context) -> List<Intent>) : this(UiText.Res(label), intents)
 
-    fun launch(context: Context): Boolean = intents().any { intent ->
+    fun launch(context: Context): Boolean = intents(context).any { intent ->
         try {
             context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             true
@@ -48,7 +50,13 @@ object Shortcuts {
         )
     }
     val dialer = Shortcut(R.string.shortcut_dialer) { listOf(Intent(Intent.ACTION_DIAL)) }
-    val messaging = Shortcut(R.string.shortcut_messaging) { listOf(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING)) }
+    val messaging = Shortcut(R.string.shortcut_messaging) { context ->
+        listOfNotNull(
+            Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING),
+            Telephony.Sms.getDefaultSmsPackage(context)?.let(context.packageManager::getLaunchIntentForPackage),
+            Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")),
+        )
+    }
     val sims = Shortcut(R.string.shortcut_sims) {
         listOf(Intent("android.settings.MANAGE_ALL_SIM_PROFILES_SETTINGS"), Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS), Intent(Settings.ACTION_WIRELESS_SETTINGS))
     }

@@ -36,6 +36,11 @@
         <package android:name="foundation.e.browser" />
         <package android:name="com.google.android.gms" />
         <package android:name="moe.shizuku.privileged.api" />
+        <!-- Makes the default SMS app visible so the messaging shortcut can open its main screen. -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
     </queries>
 
     <application
