@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "eos-bullhead",
-  "name": "/e/OS 3 for Nexus 5X",
+  "name": "/e/OS 4 for Nexus 5X",
   "rom": "/e/OS",
-  "romVersion": "3.x (Android 13)",
+  "romVersion": "4.x (Android 13)",
   "devices": [
     "bullhead"
   ],
@@ -13,8 +13,8 @@
       "matches": "e\\.foundation"
     },
     {
-      "prop": "ro.lineage.version",
-      "matches": "^3\\."
+      "prop": "ro.modversion",
+      "matches": "^4\\."
     }
   ],
   "profile": {

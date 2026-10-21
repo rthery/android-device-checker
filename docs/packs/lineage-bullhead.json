@@ -9,7 +9,7 @@
   ],
   "match": [
     {
-      "prop": "ro.lineage.version",
+      "prop": "ro.modversion",
       "matches": "^2[0-9]\\."
     },
     {
