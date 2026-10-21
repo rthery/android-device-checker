@@ -2,6 +2,7 @@ package io.github.rthery.devicechecker
 
 import io.github.rthery.devicechecker.checks.KernelVersion
 import io.github.rthery.devicechecker.checks.extractMac
+import io.github.rthery.devicechecker.checks.macFromLinkLocal
 import io.github.rthery.devicechecker.checks.hasSchedulerLines
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,5 +41,20 @@ class ShellOutputParserTest {
         """.trimIndent()
         assertEquals("64:bc:0c:12:34:56", extractMac(ipLink))
         assertNull(extractMac("Device \"wlan0\" does not exist."))
+    }
+
+    @Test
+    fun `mac comes from an eui-64 link-local address`() {
+        assertEquals("64:bc:0c:7f:c0:d0", macFromLinkLocal("fe80::66bc:cff:fe7f:c0d0"))
+        assertEquals("64:bc:0c:7f:c0:d0", macFromLinkLocal("fe80::66bc:cff:fe7f:c0d0%wlan0"))
+        assertEquals("64:bc:0c:7f:c0:d0", macFromLinkLocal("fe80::66bc:cff:fe7f:c0d0/64"))
+    }
+
+    @Test
+    fun `privacy and global addresses give no mac`() {
+        assertNull(macFromLinkLocal("fe80::1c2d:3e4f:5a6b:7c8d"))
+        assertNull(macFromLinkLocal("2a01:e0a::66bc:cff:fe7f:c0d0"))
+        assertNull(macFromLinkLocal("192.168.27.180"))
+        assertNull(macFromLinkLocal(""))
     }
 }

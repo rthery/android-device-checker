@@ -11,6 +11,8 @@ import android.hardware.display.DisplayManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.MediaCodecList
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.nfc.NfcAdapter
 import android.os.Build
 import android.os.storage.StorageManager
@@ -20,6 +22,7 @@ import io.github.rthery.devicechecker.checks.CheckContext
 import io.github.rthery.devicechecker.checks.IO_SCHEDULER_COMMAND
 import io.github.rthery.devicechecker.checks.WIFI_MAC_COMMAND
 import io.github.rthery.devicechecker.checks.extractMac
+import io.github.rthery.devicechecker.checks.macFromLinkLocal
 import io.github.rthery.devicechecker.checks.hasSchedulerLines
 import io.github.rthery.devicechecker.compat.Compat
 import io.github.rthery.devicechecker.compat.Compat.isAliasCompat
@@ -108,7 +111,8 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
     val schedulers = read(IO_SCHEDULER_COMMAND, ::hasSchedulerLines).output
     val charging = read("for f in type real_type current_max input_current_max voltage_max; do v=\$(cat /sys/class/power_supply/usb/\$f 2>/dev/null) && echo \"\$f=\$v\"; done; true") { it.contains("=") }.output
     val filesystems = readFileAsApp("/proc/filesystems") ?: read("cat /proc/filesystems").output.orEmpty()
-    val wifiMac = read(WIFI_MAC_COMMAND) { extractMac(it) != null }.output?.let(::extractMac).orEmpty()
+    val wifiMac = read(WIFI_MAC_COMMAND) { extractMac(it) != null }.output?.let(::extractMac)
+        ?: wifiLinkLocalMac(context.getSystemService(ConnectivityManager::class.java)).orEmpty()
     val btMac = (runCatching { Settings.Secure.getString(context.contentResolver, "bluetooth_address") }.getOrNull()
         ?: read("settings get secure bluetooth_address") { it.contains(':') }.output)?.trim()?.lowercase()?.takeIf { it != "02:00:00:00:00:00" }.orEmpty()
 
@@ -187,3 +191,9 @@ fun audioTypeName(type: Int): String = when (type) {
     AudioDeviceInfo.TYPE_HDMI -> "HDMI"
     else -> "type $type"
 }
+
+/** Apps cannot read the Wi-Fi MAC since Android 6, but an EUI-64 link-local address on wlan0 still encodes it. */
+private fun wifiLinkLocalMac(connectivity: ConnectivityManager): String? = connectivity.allNetworks
+    .filter { connectivity.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
+    .flatMap { connectivity.getLinkProperties(it)?.linkAddresses.orEmpty() }
+    .firstNotNullOfOrNull { macFromLinkLocal(it.address.hostAddress.orEmpty()) }

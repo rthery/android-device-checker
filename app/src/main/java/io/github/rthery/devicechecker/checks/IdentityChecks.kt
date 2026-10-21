@@ -1,6 +1,8 @@
 package io.github.rthery.devicechecker.checks
 
 import android.provider.Settings
+import java.net.Inet6Address
+import java.net.InetAddress
 
 private val MAC_REGEX = Regex("^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
 private const val PLACEHOLDER_MAC = "02:00:00:00:00:00"
@@ -11,6 +13,15 @@ internal const val WIFI_MAC_COMMAND = "cat /sys/class/net/wlan0/address 2>/dev/n
 
 /** The first MAC in `cat` or `ip link` output; ip prints the address before the broadcast one. */
 internal fun extractMac(output: String): String? = MAC_IN_TEXT.find(output.lowercase())?.value
+
+/** The MAC encoded in an EUI-64 IPv6 link-local address, or null for random or stable-privacy ones. */
+internal fun macFromLinkLocal(address: String): String? {
+    val ip = runCatching { InetAddress.getByName(address.substringBefore('/').substringBefore('%')) }.getOrNull()
+    val bytes = (ip as? Inet6Address)?.takeIf { it.isLinkLocalAddress }?.address ?: return null
+    if (bytes[11] != 0xff.toByte() || bytes[12] != 0xfe.toByte()) return null
+    val mac = byteArrayOf((bytes[8].toInt() xor 0x02).toByte(), bytes[9], bytes[10], bytes[13], bytes[14], bytes[15])
+    return mac.joinToString(":") { "%02x".format(it) }
+}
 
 val identityChecks = listOf(
     Check("wifi.mac", "Wi-Fi MAC address") {

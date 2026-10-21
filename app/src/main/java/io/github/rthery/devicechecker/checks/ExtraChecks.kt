@@ -185,10 +185,18 @@ private suspend fun CheckContext.probeInternet(transport: Int): CheckResult? {
         }
     } catch (e: Exception) {
         val link = connectivity.getLinkProperties(network ?: return null)
-        return fail(
-            "Network up but request failed: ${e.message}",
-            "Addresses ${link?.linkAddresses?.joinToString()}\nDefault route: ${link?.routes?.any { it.isDefaultRoute }}",
-        )
+        val hasDefaultRoute = link?.routes?.any { it.isDefaultRoute } == true
+        val details = "Request failed: ${e.message}\nAddresses ${link?.linkAddresses?.joinToString()}\nDefault route: $hasDefaultRoute"
+        val vpnActive = connectivity.getNetworkCapabilities(connectivity.activeNetwork)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        if (vpnActive) {
+            val validated = connectivity.getNetworkCapabilities(network)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+            return when {
+                !hasDefaultRoute -> fail("Address but no default route (netlink address flags?)", details)
+                validated -> pass("Validated by the system; a VPN blocks the app's own request", details)
+                else -> warn("A VPN blocks the app's own request and the system has not validated this network", details)
+            }
+        }
+        return fail("Network up but request failed: ${e.message}", details)
     } finally {
         callback?.let { runCatching { connectivity.unregisterNetworkCallback(it) } }
     }
