@@ -73,6 +73,8 @@
     <string name="screen_profile_section_mac">MAC addresses</string>
     <string name="screen_profile_wifi_mac">Stock Wi-Fi MAC</string>
     <string name="screen_profile_bluetooth_mac">Stock Bluetooth MAC</string>
+    <string name="screen_profile_section_bluetooth_codecs">Bluetooth audio codecs</string>
+    <string name="screen_profile_bluetooth_codecs">Stock codecs, comma separated (SBC, AAC, LDAC)</string>
 
     <string name="screen_about_title">About</string>
     <string name="screen_about_version">Android Device Checker %1$s</string>

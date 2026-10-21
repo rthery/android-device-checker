@@ -44,7 +44,7 @@ class InteractiveTest(
 )
 
 object TestRegistry {
-    val all: List<InteractiveTest> = audioTests + cameraTests + cameraHalTest + stressTests + radioTests + sensorTests + guidedTests + integrityTest
+    val all: List<InteractiveTest> = audioTests + cameraTests + cameraHalTest + stressTests + radioTests + sensorTests + guidedTests + integrityTest + bluetoothCodecTest
     val byId: Map<String, InteractiveTest> = all.associateBy { it.id }
 
     init {

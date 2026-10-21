@@ -52,7 +52,7 @@ val CHECK_HOW: Map<String, List<String>> = mapOf(
     "sd.readwrite" to listOf("Writes 16 MB to the SD card, reads it back and compares checksums"),
     "charging.usb" to listOf("Reads the USB charger type and input current limit", "Flags a standard USB port allowed more than 500 mA"),
     "battery.capacity" to listOf("Reads the design and full charge capacity from the battery or bms power supply", "You compare them with the device spec"),
-    "bluetooth.codecs" to listOf("Reads the Bluetooth codec state through Shizuku"),
+    "bluetooth.codecs" to listOf("Reads the A2DP source codecs from dumpsys bluetooth_manager through Shizuku", "Compares them with the stock codec list in the device profile; aptX Adaptive must not be added"),
     "crashes.boot" to listOf("Reads dropbox through Shizuku: tombstones, app crashes, ANRs, restarts", "Flags 3 or more crashes of one process, restarts and wtf floods"),
     "binder.vndbinder" to listOf("Checks /dev/vndbinder exists", "Looks in the log for vendor processes waiting on missing services"),
     "selinux.denials" to listOf("Reads the log through Shizuku", "Groups SELinux denials by source and target"),

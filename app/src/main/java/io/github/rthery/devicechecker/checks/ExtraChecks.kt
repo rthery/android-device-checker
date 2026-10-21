@@ -13,6 +13,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.TrafficStats
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Environment
 import android.telephony.TelephonyManager
 import kotlinx.coroutines.Dispatchers
@@ -119,14 +120,15 @@ val extraChecks = listOf(
 
     Check("bluetooth.codecs", "Bluetooth audio codecs") {
         if (!profile.stockHasBluetooth) return@Check notApplicable("Stock has no Bluetooth")
-        val read = read("dumpsys bluetooth_manager | grep -iE 'codec|aptx|ldac' | head -40") { it.isNotBlank() }
-        val output = read.output ?: return@Check needsShell("Needs Shizuku, and a connected Bluetooth headset for the active codec.")
-        val aptx = output.lines().filter { it.contains("aptx", ignoreCase = true) }.distinct()
-        info(
-            if (aptx.isEmpty()) "No aptX codec mentioned. Compare with stock." else "aptX entries found. Compare with stock.",
-            output,
-            read.access,
-        )
+        val read = read(BLUETOOTH_DUMP_COMMAND) { it.contains("Bluetooth Status") || it.contains("codecConfigPriorities") }
+        val output = read.output ?: return@Check needsShell("Reading the Bluetooth stack needs Shizuku.")
+        val listed = parseStackCodecs(output)
+        val codecs = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) withoutMissingAptx(listed, read(APTX_LIBRARY_COMMAND).output.orEmpty()) else listed
+        if (codecs.isEmpty()) {
+            val lines = output.lines().filter { it.contains("codec", ignoreCase = true) }.distinct().take(20).joinToString("\n")
+            return@Check warn("This Bluetooth stack does not list its codecs. Compare with stock by hand.", lines, read.access)
+        }
+        codecResult(codecs, profile.stockBluetoothCodecs, "Headset test: bluetooth.codecs.headset switches a connected headset through them.", read.access)
     },
 )
 

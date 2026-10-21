@@ -18,11 +18,15 @@ import android.os.Build
 import android.os.storage.StorageManager
 import android.provider.Settings
 import android.view.Display
+import io.github.rthery.devicechecker.checks.APTX_LIBRARY_COMMAND
+import io.github.rthery.devicechecker.checks.BLUETOOTH_DUMP_COMMAND
 import io.github.rthery.devicechecker.checks.CheckContext
 import io.github.rthery.devicechecker.checks.IO_SCHEDULER_COMMAND
 import io.github.rthery.devicechecker.checks.WIFI_MAC_COMMAND
 import io.github.rthery.devicechecker.checks.extractMac
 import io.github.rthery.devicechecker.checks.macFromLinkLocal
+import io.github.rthery.devicechecker.checks.parseStackCodecs
+import io.github.rthery.devicechecker.checks.withoutMissingAptx
 import io.github.rthery.devicechecker.checks.hasSchedulerLines
 import io.github.rthery.devicechecker.compat.Compat
 import io.github.rthery.devicechecker.compat.Compat.isAliasCompat
@@ -116,6 +120,10 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
     val btMac = (runCatching { Settings.Secure.getString(context.contentResolver, "bluetooth_address") }.getOrNull()
         ?: read("settings get secure bluetooth_address") { it.contains(':') }.output)?.trim()?.lowercase()?.takeIf { it != "02:00:00:00:00:00" }.orEmpty()
 
+    val btCodecs = read(BLUETOOTH_DUMP_COMMAND) { it.contains("codecConfigPriorities") }.output?.let(::parseStackCodecs).orEmpty().let { listed ->
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) withoutMissingAptx(listed, read(APTX_LIBRARY_COMMAND).output.orEmpty()) else listed
+    }
+
     val encryption = context.getSystemService(DevicePolicyManager::class.java).storageEncryptionStatus
     val removable = context.getSystemService(StorageManager::class.java).storageVolumes.any { it.isRemovable }
 
@@ -143,6 +151,7 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
         stockDensityDpi = props["ro.sf.lcd_density"]?.toIntOrNull() ?: context.resources.displayMetrics.densityDpi,
         stockWifiMac = wifiMac,
         stockBluetoothMac = btMac,
+        stockBluetoothCodecs = btCodecs,
     )
 
     return StockSnapshot(

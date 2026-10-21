@@ -55,6 +55,7 @@ fun handsOnLabel(id: String, manual: Boolean = false): Int = when (id) {
     "fingerprint.auth" -> R.string.tests_hands_on_fingerprint
     "gnss.fix" -> R.string.tests_hands_on_gps
     "bluetooth.scan" -> R.string.tests_hands_on_bluetooth
+    "bluetooth.codecs.headset" -> R.string.tests_hands_on_bluetooth_codecs
     "ir.transmit" -> R.string.tests_hands_on_ir
     else -> if (manual) R.string.tests_hands_on_follow_steps else R.string.tests_hands_on_start
 }

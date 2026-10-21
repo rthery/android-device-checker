@@ -66,7 +66,7 @@ object RequirementCatalog {
         Requirement(
             "hw.bt.aptx", Section.BLUETOOTH, SHOULD,
             "Newer aptX variants are supported if stock supports them. Older variants MAY be added. aptX Adaptive MUST NOT be added if stock lacks it.",
-            ASSISTED, listOf("bluetooth.codecs"),
+            ASSISTED, listOf("bluetooth.codecs"), listOf("bluetooth.codecs.headset"),
         ),
 
         Requirement("hw.camera.frontrear", Section.CAMERA, MUST, "Front and rear cameras work if stock has them.", INTERACTIVE, listOf("camera.list"), listOf("camera.capture")),

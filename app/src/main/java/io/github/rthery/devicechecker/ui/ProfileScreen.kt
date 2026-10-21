@@ -39,6 +39,7 @@ import io.github.rthery.devicechecker.profile.DeviceProfile
 @Composable
 fun ProfileScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var profile by remember { mutableStateOf(viewModel.profile.value) }
+    var codecsText by remember { mutableStateOf(profile.stockBluetoothCodecs.joinToString(", ")) }
 
     Scaffold(
         topBar = {
@@ -109,6 +110,18 @@ fun ProfileScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 value = profile.stockBluetoothMac,
                 onValueChange = { profile = profile.copy(stockBluetoothMac = it) },
                 label = { Text(stringResource(R.string.screen_profile_bluetooth_mac)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            SectionTitle(R.string.screen_profile_section_bluetooth_codecs)
+            OutlinedTextField(
+                value = codecsText,
+                onValueChange = {
+                    codecsText = it
+                    profile = profile.copy(stockBluetoothCodecs = it.split(',').map(String::trim).filter(String::isNotEmpty))
+                },
+                label = { Text(stringResource(R.string.screen_profile_bluetooth_codecs)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()

@@ -28,7 +28,7 @@ private val bundles = listOf(
     bundle("microphones", R.string.tests_bundle_microphones, Category.AUDIO, "audio.effects", "audio.input"),
     bundle("calls", R.string.tests_bundle_calls, Category.CONNECTIVITY, "telephony", "network.cellular", "call.audio", "messaging", "ims.calls", "sim.multi"),
     bundle("wifi", R.string.tests_bundle_wifi, Category.CONNECTIVITY, "wifi.present", "network.wifi", "network.trafficstats", "wifi.mac", "tether.wifi"),
-    bundle("bluetooth", R.string.tests_bundle_bluetooth, Category.CONNECTIVITY, "bluetooth.present", "bluetooth.scan", "bluetooth.mac", "bluetooth.codecs", "tether.bluetooth"),
+    bundle("bluetooth", R.string.tests_bundle_bluetooth, Category.CONNECTIVITY, "bluetooth.present", "bluetooth.scan", "bluetooth.mac", "bluetooth.codecs", "bluetooth.codecs.headset", "tether.bluetooth"),
     bundle("gps", R.string.tests_bundle_gps, Category.CONNECTIVITY, "gnss.present", "gnss.fix"),
     bundle("usb", R.string.tests_bundle_usb, Category.CONNECTIVITY, "usb.mtp", "tether.usb", "usb.otg"),
     bundle("display", R.string.tests_bundle_display, Category.HARDWARE, "display.resolution", "display.density", "display.hdr", "display.extradim", "livedisplay", "hw.display.external", "touch.multi"),

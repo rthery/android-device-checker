@@ -157,6 +157,7 @@
     <string name="tests_hands_on_fingerprint">Try fingerprint</string>
     <string name="tests_hands_on_gps">Find GPS fix</string>
     <string name="tests_hands_on_bluetooth">Scan devices</string>
+    <string name="tests_hands_on_bluetooth_codecs">Switch codecs</string>
     <string name="tests_hands_on_ir">Try remote</string>
     <string name="tests_hands_on_follow_steps">Follow steps</string>
     <string name="tests_hands_on_start">Start test</string>

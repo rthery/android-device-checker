@@ -10,8 +10,17 @@
     <string name="no">No</string>
     <string name="grant_permission">Grant permission</string>
     <string name="save_result">Save result</string>
-    <string name="guided_steps_left_for_later">%1$d step(s) not answered yet. You can save now and finish them later, your answers are kept.</string>
+    <plurals name="guided_steps_left_for_later">
+        <item quantity="one">%1$d step not answered yet. You can save now and finish it later, your answers are kept.</item>
+        <item quantity="other">%1$d steps not answered yet. You can save now and finish them later, your answers are kept.</item>
+    </plurals>
     <string name="guided_clear_answers">Clear answers</string>
+    <string name="bt_codecs_intro">Connect a Bluetooth headset and wear it. The test switches it to each codec it shares with the phone and plays two short tones on each. Listen for clicks, dropouts or distortion.</string>
+    <string name="bt_codecs_start">Switch through codecs</string>
+    <string name="bt_codecs_running">Switching codecs and playing tones…</string>
+    <string name="bt_codecs_question">Did the tones sound clean on every codec?</string>
+    <string name="bt_codecs_needs_13">Switching codecs uses Android 13 system APIs, so this build cannot run the test.</string>
+    <string name="bt_codecs_needs_shizuku">Switching codecs needs Shizuku: the app itself may not change the Bluetooth codec. Connect Shizuku from the home screen.</string>
     <string name="shortcut_open_settings">Open settings</string>
     <string name="step_run_command">Run: %1$s</string>
     <string name="shortcut_emergency_dialer">Open emergency dialer</string>

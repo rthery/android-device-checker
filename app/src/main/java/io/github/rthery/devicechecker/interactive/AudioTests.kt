@@ -198,7 +198,7 @@ private fun AudioOutputTest(scope: TestScope) {
     }
 }
 
-private suspend fun playTone(audio: AudioManager, device: AudioDeviceInfo) = withContext(Dispatchers.IO) {
+internal suspend fun playTone(audio: AudioManager, device: AudioDeviceInfo) = withContext(Dispatchers.IO) {
     val communication = device.needsCommunicationMode()
     val samples = ShortArray(SAMPLE_RATE * TONE_MS / 1000) { i ->
         val fade = minOf(1.0, i / 2400.0, (SAMPLE_RATE * TONE_MS / 1000 - i) / 2400.0)

@@ -32,4 +32,6 @@ data class DeviceProfile(
     val stockDensityDpi: Int? = null,
     val stockWifiMac: String = "",
     val stockBluetoothMac: String = "",
+    /** A2DP source codecs stock offers, as the stack names them (SBC, AAC, aptX, aptX HD, LDAC...). */
+    val stockBluetoothCodecs: List<String> = emptyList(),
 )

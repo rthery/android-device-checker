@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import io.github.rthery.devicechecker.R
@@ -159,7 +160,7 @@ fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Ste
         }
         val unanswered = steps.size - answers.size
         if (unanswered > 0 && answers.isNotEmpty()) {
-            Text(stringResource(R.string.guided_steps_left_for_later, unanswered), style = MaterialTheme.typography.bodySmall)
+            Text(pluralStringResource(R.plurals.guided_steps_left_for_later, unanswered, unanswered), style = MaterialTheme.typography.bodySmall)
         }
         Button(
             onClick = { scope.finish(summarize(english, steps, answers, outputs)) },
