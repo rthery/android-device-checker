@@ -107,10 +107,12 @@
     </plurals>
 
     <string name="tests_title">Tests</string>
-    <string name="tests_device_line">%1$s · Android %2$s</string>
-    <string name="tests_device_line_rom">%1$s · Android %2$s · %3$s</string>
+    <string name="tests_device_line">%1$s · Android %2$s · %3$s</string>
+    <string name="tests_device_line_rom">%1$s · Android %2$s · %3$s · %4$s</string>
     <string name="tests_shizuku_on">Shizuku on</string>
     <string name="tests_shizuku_off">Shizuku off</string>
+    <string name="tests_shizuku_root">Shizuku (root)</string>
+    <string name="tests_adb_root">adb root</string>
     <string name="tests_filter_all">All</string>
     <string name="tests_filter_needs">Need you</string>
     <string name="tests_filter_failed">Failed</string>

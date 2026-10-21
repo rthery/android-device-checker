@@ -13,9 +13,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.rthery.devicechecker.pack.LauncherIcon
+import io.github.rthery.devicechecker.shell.AdbRoot
 import io.github.rthery.devicechecker.shell.ShizukuShell
 import io.github.rthery.devicechecker.ui.App
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val ROOT_POLL_MS = 5_000L
 
 /** Ignores intent extras: adb requests arrive through [AdbLinkActivity] and [AdbLinks] only. */
 class MainActivity : ComponentActivity() {
@@ -35,6 +39,15 @@ class MainActivity : ComponentActivity() {
                     AdbLinks.consume()
                     if (link.run != null) showOverLockScreen(true)
                     viewModel.deepLink(run = link.run, test = link.test, tab = link.tab, options = link.options)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    ShizukuShell.refresh()
+                    AdbRoot.refresh()
+                    delay(ROOT_POLL_MS)
                 }
             }
         }

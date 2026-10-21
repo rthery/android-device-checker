@@ -21,6 +21,10 @@ object ShizukuShell : Shell {
     private val _state = MutableStateFlow(ShizukuState.NOT_RUNNING)
     val state: StateFlow<ShizukuState> = _state.asStateFlow()
 
+    private val _runsAsRoot = MutableStateFlow(false)
+    /** True when the server was started from a root shell, so its reads are root reads, not shell reads. */
+    val runsAsRoot: StateFlow<Boolean> = _runsAsRoot.asStateFlow()
+
     @Volatile
     private var service: IShellService? = null
 
@@ -53,6 +57,7 @@ object ShizukuShell : Shell {
         Shizuku.addBinderDeadListener {
             service = null
             _state.value = ShizukuState.NOT_RUNNING
+            _runsAsRoot.value = false
         }
         Shizuku.addRequestPermissionResultListener { requestCode, grantResult ->
             if (requestCode == PERMISSION_REQUEST_CODE && grantResult == PackageManager.PERMISSION_GRANTED) {
@@ -62,6 +67,7 @@ object ShizukuShell : Shell {
     }
 
     fun refresh() {
+        _runsAsRoot.value = Shizuku.pingBinder() && runCatching { Shizuku.getUid() == 0 }.getOrDefault(false)
         _state.value = when {
             !Shizuku.pingBinder() -> ShizukuState.NOT_RUNNING
             Shizuku.isPreV11() -> ShizukuState.UNSUPPORTED

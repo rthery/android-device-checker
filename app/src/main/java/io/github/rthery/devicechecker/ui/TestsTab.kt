@@ -93,6 +93,8 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
     val lastRun by viewModel.lastRun.collectAsStateWithLifecycle()
     val deviceInfo by viewModel.deviceInfo.collectAsStateWithLifecycle()
     val shizuku by viewModel.shizukuState.collectAsStateWithLifecycle()
+    val shizukuRoot by viewModel.shizukuRoot.collectAsStateWithLifecycle()
+    val adbRoot by viewModel.adbRoot.collectAsStateWithLifecycle()
     val catalog = viewModel.catalog.collectAsStateWithLifecycle().value
     var filter by rememberSaveable { mutableStateOf(TestFilter.ALL) }
     val closed by viewModel.collapsedCategories.collectAsStateWithLifecycle()
@@ -149,27 +151,32 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         item {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(R.string.tests_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        deviceInfo.rom?.let { stringResource(R.string.tests_device_line_rom, Build.MODEL, Build.VERSION.RELEASE, it.label) }
-                            ?: stringResource(R.string.tests_device_line, Build.MODEL, Build.VERSION.RELEASE),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.tests_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    if (adbRoot == true) StateChip(stringResource(R.string.tests_adb_root), warning = true, onClick = onOpenDevice)
+                    val shizukuReady = shizuku == ShizukuState.READY
+                    StateChip(
+                        stringResource(
+                            when {
+                                !shizukuReady -> R.string.tests_shizuku_off
+                                shizukuRoot -> R.string.tests_shizuku_root
+                                else -> R.string.tests_shizuku_on
+                            }
+                        ),
+                        warning = shizukuReady && shizukuRoot,
+                        active = shizukuReady,
+                        onClick = onOpenDevice,
                     )
                 }
-                Surface(
-                    onClick = onOpenDevice,
-                    shape = RoundedCornerShape(50),
-                    color = if (shizuku == ShizukuState.READY) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                ) {
-                    Text(
-                        stringResource(if (shizuku == ShizukuState.READY) R.string.tests_shizuku_on else R.string.tests_shizuku_off),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-                }
+                Text(
+                    deviceInfo.rom?.let { stringResource(R.string.tests_device_line_rom, Build.MODEL, Build.VERSION.RELEASE, it.label, Build.TYPE) }
+                        ?: stringResource(R.string.tests_device_line, Build.MODEL, Build.VERSION.RELEASE, Build.TYPE),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
 
@@ -447,5 +454,22 @@ internal fun TestRow(
         val enabled = !(test.kind == TestKind.AUTO && runActive)
         TestActionButton(label = stringResource(if (test.kind == TestKind.AUTO || test.isRequirementOnly) label else handsOnLabel(test.id, test.kind == TestKind.MANUAL)),
             handsOn = test.kind != TestKind.AUTO, onClick = onAction, enabled = enabled)
+    }
+}
+
+/** Header status pill; [warning] marks a state that makes results unlike a user's phone. */
+@Composable
+private fun StateChip(label: String, warning: Boolean, onClick: () -> Unit, active: Boolean = true) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = when {
+            warning -> MaterialTheme.colorScheme.errorContainer
+            active -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        contentColor = if (warning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
     }
 }

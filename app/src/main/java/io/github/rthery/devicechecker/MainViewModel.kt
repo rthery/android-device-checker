@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import io.github.rthery.devicechecker.data.toJson
 import io.github.rthery.devicechecker.data.toMarkdown
 import io.github.rthery.devicechecker.profile.DeviceProfile
+import io.github.rthery.devicechecker.shell.AdbRoot
 import io.github.rthery.devicechecker.shell.ShizukuShell
 import io.github.rthery.devicechecker.shell.ShizukuState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val progress: StateFlow<RunProgress?> = repository.progress
     val deviceInfo: StateFlow<DeviceInfo> = repository.deviceInfo
     val shizukuState: StateFlow<ShizukuState> = ShizukuShell.state
+    val shizukuRoot: StateFlow<Boolean> = ShizukuShell.runsAsRoot
+    val adbRoot: StateFlow<Boolean?> = AdbRoot.state
     val lastRun: StateFlow<RunSummary?> = repository.lastRun
     val reportsDir: File get() = repository.reportsDir
     val catalog: StateFlow<TestCatalog> = repository.catalog
