@@ -16,7 +16,7 @@ private fun appAction(@StringRes label: Int, command: String) = StepAction(label
 }
 
 private fun guided(id: String, title: String, summary: String, @StringRes intro: Int, vararg steps: Step) =
-    InteractiveTest(id, title, summary, manual = true) { scope -> GuidedSteps(scope, UiText.Res(intro), steps.toList()) }
+    InteractiveTest(id, title, summary, manual = true) { scope -> GuidedSteps(scope, id, UiText.Res(intro), steps.toList()) }
 
 private val usbState = shellAction(R.string.guided_action_show_usb_state, "svc usb getFunctions 2>&1; dumpsys usb | grep -iE 'connected|configured|current_functions|data_role' | head -10")
 private val tetherState = shellAction(R.string.guided_action_show_tethering_state, "dumpsys tethering | grep -iE 'tethered|state|upstream' | head -20")

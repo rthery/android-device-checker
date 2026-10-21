@@ -32,6 +32,7 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import io.github.rthery.devicechecker.R
+import io.github.rthery.devicechecker.data.Store
 import io.github.rthery.devicechecker.ui.UiText
 import io.github.rthery.devicechecker.ui.englishContext
 import io.github.rthery.devicechecker.checks.CheckResult
@@ -41,6 +42,7 @@ import io.github.rthery.devicechecker.checks.notApplicable
 import io.github.rthery.devicechecker.checks.pass
 import io.github.rthery.devicechecker.checks.warn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 @Composable
 fun RequirePermissions(permissions: List<String>, rationale: String, content: @Composable () -> Unit) {
@@ -104,15 +106,25 @@ class Step(
     constructor(text: String, shortcut: Shortcut? = null, action: StepAction? = null) : this(UiText.Raw(text), shortcut, action)
 }
 
+@Serializable
 enum class StepAnswer(@StringRes val label: Int) { PASS(R.string.step_works), FAIL(R.string.step_broken), SKIP(R.string.step_cant_test) }
 
-/** One card per step, each answered by the tester. Fails if any step fails. */
+/** Answers and action outputs kept between visits, keyed by step index. */
+@Serializable
+data class GuidedDraft(val answers: Map<Int, StepAnswer> = emptyMap(), val outputs: Map<Int, String> = emptyMap()) {
+    fun isEmpty() = answers.isEmpty() && outputs.isEmpty()
+}
+
+/** One card per step, each answered by the tester. Fails if any step fails; unanswered steps can be left for later. */
 @Composable
-fun GuidedSteps(scope: TestScope, intro: UiText, steps: List<Step>) {
+fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Step>) {
     val english = LocalContext.current.englishContext()
-    val answers = remember { mutableStateMapOf<Int, StepAnswer>() }
-    val outputs = remember { mutableStateMapOf<Int, String>() }
+    val store = remember { Store(scope.activity) }
+    val draft = remember { store.loadGuidedDraft(testId) }
+    val answers = remember { mutableStateMapOf<Int, StepAnswer>().apply { putAll(draft.answers.filterKeys { it in steps.indices }) } }
+    val outputs = remember { mutableStateMapOf<Int, String>().apply { putAll(draft.outputs.filterKeys { it in steps.indices }) } }
     val coroutines = rememberCoroutineScope()
+    fun persist() = store.saveGuidedDraft(testId, GuidedDraft(answers.toMap(), outputs.toMap()))
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Instructions(intro.resolve())
@@ -123,34 +135,60 @@ fun GuidedSteps(scope: TestScope, intro: UiText, steps: List<Step>) {
                     step.shortcut?.let { ShortcutButton(it) }
                     step.action?.let { action ->
                         OutlinedButton(onClick = {
-                            coroutines.launch { outputs[index] = runCatching { action.run(scope) }.getOrElse { it.message.orEmpty() } }
+                            coroutines.launch {
+                                outputs[index] = runCatching { action.run(scope) }.getOrElse { it.message.orEmpty() }
+                                persist()
+                            }
                         }) { Text(action.label.resolve()) }
                     }
                     outputs[index]?.let { Mono(it) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StepAnswer.entries.forEach { answer ->
-                            FilterChip(selected = answers[index] == answer, onClick = { answers[index] = answer }, label = { Text(stringResource(answer.label)) })
+                            FilterChip(
+                                selected = answers[index] == answer,
+                                onClick = {
+                                    if (answers[index] == answer) answers.remove(index) else answers[index] = answer
+                                    persist()
+                                },
+                                label = { Text(stringResource(answer.label)) },
+                            )
                         }
                     }
                 }
             }
         }
+        val unanswered = steps.size - answers.size
+        if (unanswered > 0 && answers.isNotEmpty()) {
+            Text(stringResource(R.string.guided_steps_left_for_later, unanswered), style = MaterialTheme.typography.bodySmall)
+        }
         Button(
             onClick = { scope.finish(summarize(english, steps, answers, outputs)) },
-            enabled = answers.size == steps.size,
+            enabled = answers.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.save_result)) }
+        if (answers.isNotEmpty() || outputs.isNotEmpty()) {
+            OutlinedButton(
+                onClick = {
+                    answers.clear()
+                    outputs.clear()
+                    persist()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.guided_clear_answers)) }
+        }
     }
 }
 
-private fun summarize(english: Context, steps: List<Step>, answers: Map<Int, StepAnswer>, outputs: Map<Int, String>): CheckResult {
+internal fun summarize(english: Context, steps: List<Step>, answers: Map<Int, StepAnswer>, outputs: Map<Int, String>): CheckResult {
     val details = steps.indices.joinToString("\n") { i ->
-        "${answers[i]?.let { english.getString(it.label) } ?: "?"}: ${steps[i].text.resolve(english)}${outputs[i]?.let { "\n  $it" }.orEmpty()}"
+        "${answers[i]?.let { english.getString(it.label) } ?: "Not answered yet"}: ${steps[i].text.resolve(english)}${outputs[i]?.let { "\n  $it" }.orEmpty()}"
     }
     val failed = answers.values.count { it == StepAnswer.FAIL }
     val skipped = answers.values.count { it == StepAnswer.SKIP }
+    val unanswered = steps.size - answers.size
     return when {
         failed > 0 -> fail("$failed step(s) broken", details)
+        unanswered > 0 -> warn("$unanswered step(s) left for later", details)
         skipped == steps.size -> notApplicable("All steps skipped").copy(details = details)
         skipped > 0 -> warn("$skipped step(s) not tested", details)
         else -> pass("All steps work", details)

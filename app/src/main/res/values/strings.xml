@@ -10,6 +10,8 @@
     <string name="no">No</string>
     <string name="grant_permission">Grant permission</string>
     <string name="save_result">Save result</string>
+    <string name="guided_steps_left_for_later">%1$d step(s) not answered yet. You can save now and finish them later, your answers are kept.</string>
+    <string name="guided_clear_answers">Clear answers</string>
     <string name="shortcut_open_settings">Open settings</string>
     <string name="step_run_command">Run: %1$s</string>
     <string name="shortcut_wifi">Wi-Fi settings</string>

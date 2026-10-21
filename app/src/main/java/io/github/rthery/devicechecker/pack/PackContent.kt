@@ -121,10 +121,10 @@ private suspend fun CheckContext.runShellTest(test: ShellTest): CheckResult {
 
 private fun interactive(id: String, test: PackTest, packName: String): InteractiveTest = when (test) {
     is SettingsTest -> InteractiveTest(id, test.title, test.description.orEmpty(), manual = true, source = packName) { scope ->
-        GuidedSteps(scope, UiText.Raw(test.description ?: test.question), listOf(Step(test.question, shortcut = test.intent.toShortcut())))
+        GuidedSteps(scope, id, UiText.Raw(test.description ?: test.question), listOf(Step(test.question, shortcut = test.intent.toShortcut())))
     }
     is GuidedTest -> InteractiveTest(id, test.title, test.description.orEmpty(), manual = true, source = packName) { scope ->
-        GuidedSteps(scope, UiText.Raw(test.intro), test.steps.map { step -> Step(step.text, step.shortcut?.toShortcut(), step.command?.let(::commandAction)) })
+        GuidedSteps(scope, id, UiText.Raw(test.intro), test.steps.map { step -> Step(step.text, step.shortcut?.toShortcut(), step.command?.let(::commandAction)) })
     }
     else -> error("Not an interactive test")
 }

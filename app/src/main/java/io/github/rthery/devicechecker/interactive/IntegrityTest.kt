@@ -226,7 +226,7 @@ val integrityTest = InteractiveTest(
 private fun IntegrityTest(scope: TestScope) {
     val shell = scope.privilegedShell
     if (shell == null) {
-        GuidedSteps(scope, UiText.Res(R.string.integrity_manual_intro), manualSteps)
+        GuidedSteps(scope, "integrity.basic", UiText.Res(R.string.integrity_manual_intro), manualSteps)
         return
     }
     val coroutines = rememberCoroutineScope()

@@ -2,6 +2,7 @@ package io.github.rthery.devicechecker.data
 
 import android.content.Context
 import io.github.rthery.devicechecker.checks.CheckResult
+import io.github.rthery.devicechecker.interactive.GuidedDraft
 import io.github.rthery.devicechecker.profile.DeviceProfile
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -48,6 +49,12 @@ class Store(context: Context) {
         if (stock == null) prefs.edit().remove(KEY_STOCK).apply() else write(KEY_STOCK, stock)
     }
 
+    fun loadGuidedDraft(testId: String): GuidedDraft = read("$KEY_GUIDED_DRAFT$testId") ?: GuidedDraft()
+
+    fun saveGuidedDraft(testId: String, draft: GuidedDraft) {
+        if (draft.isEmpty()) prefs.edit().remove("$KEY_GUIDED_DRAFT$testId").apply() else write("$KEY_GUIDED_DRAFT$testId", draft)
+    }
+
     private inline fun <reified T> read(key: String): T? =
         prefs.getString(key, null)?.let { runCatching { json.decodeFromString<T>(it) }.getOrNull() }
 
@@ -60,5 +67,6 @@ class Store(context: Context) {
         const val KEY_CHECKS = "check_results"
         const val KEY_VERDICTS = "verdicts"
         const val KEY_STOCK = "stock_snapshot"
+        const val KEY_GUIDED_DRAFT = "guided_draft_"
     }
 }
