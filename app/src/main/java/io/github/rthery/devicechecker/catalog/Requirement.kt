@@ -74,8 +74,6 @@ data class Requirement(
     val rom: Rom? = null,
     /** Name of the device pack that added it; null for built-in requirements. */
     val source: String? = null,
-    /** Where a built-in requirement comes from when it is not the charter. */
-    val reference: String? = null,
 ) {
     fun appliesTo(buildRom: Rom?): Boolean = (!lineageOnly || buildRom != null) && (rom == null || rom == buildRom)
 

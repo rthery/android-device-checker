@@ -14,6 +14,7 @@ val CHECK_HOW: Map<String, List<String>> = mapOf(
     "security.patch" to listOf("Reads the platform and vendor security patch levels", "Warns when the platform patch is older than 90 days"),
     "updater.present" to listOf("Checks that org.lineageos.updater is installed"),
     "browser.jelly" to listOf("Checks that org.lineageos.jelly is installed"),
+    "eos.buildtype" to listOf("Reads Build.TYPE", "Passes on user, warns on userdebug, fails on anything else"),
     "eos.apps" to listOf("Checks that App Lounge and Advanced Privacy are installed"),
     "eos.browser" to listOf("Checks that foundation.e.browser is installed"),
     "eos.microg" to listOf("Checks that com.google.android.gms is installed and declares the org.microg.gms permissions"),

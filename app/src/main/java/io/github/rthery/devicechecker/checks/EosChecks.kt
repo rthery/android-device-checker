@@ -2,6 +2,7 @@ package io.github.rthery.devicechecker.checks
 
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.os.Build
 import android.provider.Settings
 import io.github.rthery.devicechecker.catalog.Rom
 
@@ -14,6 +15,15 @@ internal val MICROG_PERMISSIONS = listOf("org.microg.gms.EXTENDED_ACCESS", "org.
 private val GOOGLE_DNS = setOf("8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844")
 
 val eosChecks = listOf(
+    Check("eos.buildtype", "/e/OS build type") {
+        if (rom != Rom.EOS) return@Check notApplicable("Not an /e/OS build")
+        when (val type = Build.TYPE) {
+            "user" -> pass("Build type is user")
+            "userdebug" -> warn("Build type is userdebug. Fine for validation, ship a user build publicly.", "Build.DISPLAY says ${Build.DISPLAY}: /e/OS hardcodes \"-user\" in it even on userdebug builds.")
+            else -> fail("Build type is $type, expected user for public releases")
+        }
+    },
+
     Check("eos.apps", "/e/OS core apps") {
         if (rom != Rom.EOS) return@Check notApplicable("Not an /e/OS build")
         val missing = EOS_CORE_APPS.filterNot { isInstalled(it) }

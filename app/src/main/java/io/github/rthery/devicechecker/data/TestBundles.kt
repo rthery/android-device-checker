@@ -15,7 +15,7 @@ private data class BundleSpec(val id: String, @StringRes val title: Int, val cat
 private fun bundle(id: String, @StringRes title: Int, category: Category, vararg ids: String) = BundleSpec(id, title, category, ids.toSet())
 
 private val bundles = listOf(
-    bundle("build", R.string.tests_bundle_build, Category.SECURITY, "build.type", "build.fingerprint", "security.patch"),
+    bundle("build", R.string.tests_bundle_build, Category.SECURITY, "build.type", "eos.buildtype", "build.fingerprint", "security.patch"),
     bundle("selinux", R.string.tests_bundle_selinux, Category.SECURITY, "selinux", "selinux.denials"),
     bundle("binder", R.string.tests_bundle_binder, Category.SECURITY, "binder.64bit", "binder.vndbinder"),
     bundle("encryption", R.string.tests_bundle_encryption, Category.SECURITY, "crypto.status", "keystore.hardware"),

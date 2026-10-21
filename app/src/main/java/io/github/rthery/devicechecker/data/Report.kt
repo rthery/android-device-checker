@@ -52,8 +52,6 @@ data class ReportRequirement(
     val verdictNote: String? = null,
     /** Device pack that added this requirement. */
     val source: String? = null,
-    /** Where a built-in requirement comes from when it is not the charter. */
-    val reference: String? = null,
     /** Built-in requirement this pack requirement stands in for. */
     val replaces: String? = null,
     val waiver: String? = null,
@@ -121,7 +119,6 @@ fun buildJsonReport(
             verdict = verdict?.verdict?.name,
             verdictNote = verdict?.note?.ifBlank { null },
             source = requirement.source,
-            reference = requirement.reference,
             replaces = catalog.replacedBy(requirement.id)?.let { "${it.id}: ${it.text}" },
             waiver = waiver?.reason,
             waivedChecks = waiver?.checks.orEmpty(),
@@ -190,7 +187,6 @@ fun JsonReport.toMarkdown(): String = buildString {
             appendLine()
             appendLine("id `${item.id}`, mode ${item.mode}${item.rom?.let { ", $it builds only" } ?: if (item.lineageOnly) ", LineageOS-based builds only" else ""}")
             item.source?.let { appendLine("From $it") }
-            item.reference?.let { appendLine("From the $it") }
             item.replaces?.let { appendLine("Replaces $it") }
             item.waiver?.let {
                 val scope = if (item.waivedChecks.isEmpty()) "" else " for ${item.waivedChecks.joinToString()}"

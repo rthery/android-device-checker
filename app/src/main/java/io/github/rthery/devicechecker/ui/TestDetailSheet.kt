@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
 import io.github.rthery.devicechecker.R
-import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.checks.Access
 import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.data.TestKind
@@ -73,13 +72,12 @@ internal fun TestDetailContent(
     var showingRawOutput by rememberSaveable(test.id) { mutableStateOf(false) }
     val completed = result != null && result.timestamp != initialTimestamp
     LaunchedEffect(requested, state, result?.timestamp) {
-        if (requested || state == TestState.RUNNING || state == TestState.QUEUED) {
-            showingProgress = true
-            if (state != TestState.RUNNING && state != TestState.QUEUED && result != null && result.timestamp != runTimestamp) {
-                delay(600)
-                showingProgress = false
-                requested = false
-            }
+        val active = state == TestState.RUNNING || state == TestState.QUEUED
+        if (requested || active) showingProgress = true
+        if (showingProgress && !active && result != null && result.timestamp != runTimestamp) {
+            delay(600)
+            showingProgress = false
+            requested = false
         }
     }
     val detailsListState = rememberLazyListState()
@@ -125,10 +123,7 @@ internal fun TestDetailContent(
                     requirement.note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
                 test.scopeLabel?.let { Hint(it) }
-                Hint(
-                    test.source?.let { stringResource(R.string.tests_detail_from_pack, it) }
-                        ?: stringResource(R.string.tests_detail_from_reference, test.requirements.firstNotNullOfOrNull { it.reference } ?: RequirementCatalog.SOURCE_TITLE)
-                )
+                test.source?.let { Hint(stringResource(R.string.tests_detail_from_pack, it)) }
                 test.requirements.firstNotNullOfOrNull { catalog.replacedBy(it.id) }?.let { replaced ->
                     Hint(stringResource(R.string.tests_detail_replaces, replaced.level.label, replaced.text))
                 }

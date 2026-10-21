@@ -174,7 +174,6 @@
     <string name="tests_detail_requirements">Requirements it covers</string>
     <string name="tests_detail_requirement">Requirement</string>
     <string name="tests_detail_from_pack">From the device pack %1$s</string>
-    <string name="tests_detail_from_reference">From the %1$s</string>
     <string name="tests_detail_replaces">Replaces the built-in requirement: %1$s: %2$s</string>
     <string name="tests_detail_exception">Granted exception</string>
     <string name="tests_detail_waived_by">Waived by %1$s</string>

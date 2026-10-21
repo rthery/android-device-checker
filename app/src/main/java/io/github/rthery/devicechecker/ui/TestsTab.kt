@@ -102,7 +102,7 @@ fun TestsTab(viewModel: MainViewModel, listState: LazyListState, onOpenTest: (St
 
     val tests = catalog.all
     val waivers = remember(catalog) { tests.associate { it.id to catalog.waiverFor(it) } }
-    val priorityTests = remember(catalog, priority) { tests.filter(priority::accepts) }
+    val priorityTests = remember(catalog, priority, deviceInfo.rom) { tests.filter { priority.accepts(it) && it.appliesTo(deviceInfo.rom) } }
     val bundles = remember(priorityTests) { bundleTests(priorityTests) }
     val grouped = remember(bundles) { bundles.groupBy { it.category } }
     val categoryTests = remember(grouped) { grouped.mapValues { (_, entries) -> entries.flatMap { it.tests } } }

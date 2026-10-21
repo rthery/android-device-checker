@@ -78,8 +78,8 @@
     <string name="screen_about_version">Android Device Checker %1$s</string>
     <string name="screen_about_intro">Tests an Android build, custom ROM or stock, on real hardware: automated checks, in-app tests that only ask you what a machine cannot judge, guided steps for the rest, and Markdown and JSON reports.</string>
     <string name="screen_about_checklist">Checklist</string>
-    <string name="screen_about_checklist_body">The requirements are paraphrased and adapted from the %1$s, licensed %2$s. That document itself adapts parts of Google\'s Android Compatibility Definition Document. Items specific to LineageOS (its Updater, Recovery, browser, LiveDisplay, device tree and maintainer rules) only apply to LineageOS-based builds and show as N/A elsewhere.</string>
-    <string name="screen_about_not_affiliated">This app is not affiliated with or endorsed by the LineageOS project or Google.</string>
+    <string name="screen_about_checklist_body">The requirements are paraphrased and adapted from the %1$s, licensed %2$s. That document itself adapts parts of Google\'s Android Compatibility Definition Document. Items specific to /e/OS are based on its QA plans and documentation. Items specific to LineageOS (its Updater, Recovery, browser, LiveDisplay, device tree and maintainer rules) only apply to LineageOS-based builds and are hidden elsewhere.</string>
+    <string name="screen_about_not_affiliated">This app is not affiliated with or endorsed by the LineageOS project, the /e/OS project or Google.</string>
     <string name="screen_about_link_requirements">LineageOS Device Support Requirements</string>
     <string name="screen_about_link_license">%1$s license</string>
     <string name="screen_about_link_cdd">Android Compatibility Definition Document</string>

@@ -20,16 +20,11 @@ object RequirementCatalog {
     const val SOURCE_LICENSE = "CC BY 3.0"
     const val SOURCE_LICENSE_URL = "https://creativecommons.org/licenses/by/3.0/"
 
-    private const val LINEAGE_RELEASE_NOTES = "LineageOS 23.0 and 24.0 release notes"
-    private const val EOS_QA = "/e/OS QA HealthCheck plan"
-    private const val EOS_ESSENTIALS = "/e/OS QA Essentials plan"
-    private const val EOS_BUILD_TYPES = "/e/OS build types documentation"
-    private const val EOS_RELOCK = "/e/OS bootloader relocking guide"
 
     val all: List<Requirement> = listOf(
         Requirement("general.ownership", Section.GENERAL, MUST, "The maintainer owns the device or a variant of it.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
         Requirement("general.exceptions", Section.GENERAL, MUST, "Any granted exception is documented on the wiki for every affected device.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
-        Requirement("qa.factoryreset", Section.GENERAL, SHOULD, "Factory reset wipes the device and boots back to setup.", MANUAL, testIds = listOf("factory.reset"), reference = "$EOS_QA (#3)"),
+        Requirement("qa.factoryreset", Section.GENERAL, SHOULD, "Factory reset wipes the device and boots back to setup.", MANUAL, testIds = listOf("factory.reset")),
 
         Requirement("hw.audio.media", Section.AUDIO, MUST, "Media playback works.", INTERACTIVE, listOf("audio.devices"), listOf("audio.output", "audio.stress")),
         Requirement("hw.audio.incall", Section.AUDIO, MUST, "Phones (and tablets that can) support in-call audio and speakerphone.", INTERACTIVE, listOf("audio.devices"), listOf("audio.output", "call.audio")),
@@ -43,9 +38,9 @@ object RequirementCatalog {
             note = "Never dial a real emergency number just to test. Use your carrier or emergency service test procedure if one exists.",
         ),
         Requirement("hw.ril.emergency.nosim", Section.RIL, SHOULD, "Emergency calling works without a SIM.", MANUAL, testIds = listOf("emergency.call")),
-        Requirement("qa.messaging", Section.RIL, SHOULD, "SMS and MMS send and receive work on devices with RIL.", INTERACTIVE, testIds = listOf("messaging"), reference = "$EOS_QA (#4 to #7)"),
-        Requirement("qa.ims", Section.RIL, SHOULD, "VoLTE and VoWiFi calls work where the carrier supports them.", INTERACTIVE, testIds = listOf("ims.calls"), reference = "$EOS_QA (#27 to #29)"),
-        Requirement("qa.multisim", Section.RIL, SHOULD, "Dual SIM and eSIM work if stock supports them.", INTERACTIVE, testIds = listOf("sim.multi"), reference = "$EOS_QA (#307 to #314)"),
+        Requirement("qa.messaging", Section.RIL, SHOULD, "SMS and MMS send and receive work on devices with RIL.", INTERACTIVE, testIds = listOf("messaging")),
+        Requirement("qa.ims", Section.RIL, SHOULD, "VoLTE and VoWiFi calls work where the carrier supports them.", INTERACTIVE, testIds = listOf("ims.calls")),
+        Requirement("qa.multisim", Section.RIL, SHOULD, "Dual SIM and eSIM work if stock supports them.", INTERACTIVE, testIds = listOf("sim.multi")),
 
         Requirement("hw.crypto.hardware", Section.ENCRYPTION, MUST, "Hardware-backed encryption works if stock had it.", ASSISTED, listOf("crypto.status", "keystore.hardware")),
         Requirement("hw.crypto.forced", Section.ENCRYPTION, SHOULD, "Devices that shipped with forced encryption are encrypted by default.", AUTOMATED, listOf("crypto.status")),
@@ -61,7 +56,7 @@ object RequirementCatalog {
         Requirement("hw.usb.mtp", Section.USB, MUST, "MTP file access works on every USB port.", INTERACTIVE, testIds = listOf("usb.mtp")),
         Requirement("hw.usb.tether", Section.USB, MUST, "USB tethering works if stock has it.", INTERACTIVE, testIds = listOf("tether.usb")),
         Requirement("hw.usb.tether.anyport", Section.USB, SHOULD, "USB tethering works on any USB port with data.", INTERACTIVE, testIds = listOf("tether.usb")),
-        Requirement("qa.usb.otg", Section.USB, SHOULD, "USB OTG storage and USB Ethernet adapters work if stock supports them.", INTERACTIVE, testIds = listOf("usb.otg"), reference = "$EOS_QA (#303, #305)"),
+        Requirement("qa.usb.otg", Section.USB, SHOULD, "USB OTG storage and USB Ethernet adapters work if stock supports them.", INTERACTIVE, testIds = listOf("usb.otg")),
 
         Requirement("hw.gps", Section.GPS, MUST, "GPS works if stock has it.", INTERACTIVE, listOf("gnss.present"), listOf("gnss.fix")),
 
@@ -89,7 +84,7 @@ object RequirementCatalog {
             "Extra non-USB display interfaces, USB display out and HDR10 playback work if stock supports them.",
             ASSISTED, listOf("display.hdr"),
         ),
-        Requirement("qa.multitouch", Section.DISPLAY, SHOULD, "The touchscreen tracks every finger and shows no ghost touches.", INTERACTIVE, testIds = listOf("touch.multi"), reference = "$EOS_QA (#298)"),
+        Requirement("qa.multitouch", Section.DISPLAY, SHOULD, "The touchscreen tracks every finger and shows no ghost touches.", INTERACTIVE, testIds = listOf("touch.multi")),
 
         Requirement("hw.nfc", Section.NFC, MUST, "NFC works if stock has it.", INTERACTIVE, listOf("nfc.present"), listOf("nfc.tag")),
 
@@ -107,9 +102,9 @@ object RequirementCatalog {
         Requirement("hw.sensors.core", Section.SENSORS, MUST, "Accelerometer, gyroscope, proximity and light sensors work if present.", INTERACTIVE, listOf("sensors.core"), listOf("sensors.motion")),
         Requirement("hw.sensors.other", Section.SENSORS, SHOULD, "Other sensors supported by stock work.", ASSISTED, listOf("sensors.list")),
 
-        Requirement("qa.battery.capacity", Section.BATTERY, SHOULD, "The battery reports a capacity in line with the device spec.", ASSISTED, listOf("battery.capacity"), reference = "$EOS_QA (#315)"),
-        Requirement("qa.charging.offmode", Section.BATTERY, SHOULD, "Off-mode charging shows the battery state while the device is off.", INTERACTIVE, testIds = listOf("charging.offmode"), reference = "$EOS_QA (#297)"),
-        Requirement("qa.charging.cables", Section.BATTERY, SHOULD, "Charging works with USB-A to C and C to C cables.", INTERACTIVE, testIds = listOf("charging.cables"), reference = "$EOS_QA (#299, #300)"),
+        Requirement("qa.battery.capacity", Section.BATTERY, SHOULD, "The battery reports a capacity in line with the device spec.", ASSISTED, listOf("battery.capacity")),
+        Requirement("qa.charging.offmode", Section.BATTERY, SHOULD, "Off-mode charging shows the battery state while the device is off.", INTERACTIVE, testIds = listOf("charging.offmode")),
+        Requirement("qa.charging.cables", Section.BATTERY, SHOULD, "Charging works with USB-A to C and C to C cables.", INTERACTIVE, testIds = listOf("charging.cables")),
 
         Requirement("hw.accessories", Section.ACCESSORIES, SHOULD, "Proprietary accessories work.", MANUAL),
         Requirement("hw.deviations", Section.ACCESSORIES, MUST, "Every hardware deviation from stock is documented on the wiki with a justification.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
@@ -138,7 +133,7 @@ object RequirementCatalog {
         Requirement(
             "sw.kernel.release", Section.KERNEL, SHOULD,
             "The kernel is accepted for the LineageOS release: 4.4 and 4.9 only up to 22.2, and 4.14 or later with eBPF backports equivalent to 5.4 from 23.0.",
-            AUTOMATED, listOf("kernel.release"), lineageOnly = true, reference = LINEAGE_RELEASE_NOTES,
+            AUTOMATED, listOf("kernel.release"), lineageOnly = true,
         ),
 
         Requirement("sw.selinux", Section.SECURITY, MUST, "SELinux is Enforcing.", AUTOMATED, listOf("selinux", "selinux.denials")),
@@ -147,11 +142,12 @@ object RequirementCatalog {
         Requirement("sw.su", Section.SECURITY, MUST_NOT, "The build does not ship su.", AUTOMATED, listOf("su.absent")),
         Requirement("sw.frp", Section.SECURITY, SHOULD, "Factory Reset Protection works with Google apps installed, if stock supports FRP.", ASSISTED, listOf("frp")),
         Requirement("sw.playintegrity", Section.SECURITY, MUST_NOT, "Play Integrity responses are not altered.", ASSISTED, listOf("build.fingerprint")),
-        Requirement("eos.dns", Section.SECURITY, SHOULD, "Google's DNS servers are not used by default.", AUTOMATED, listOf("eos.dns"), rom = Rom.EOS, reference = "$EOS_ESSENTIALS (#219)"),
-        Requirement("eos.integrity", Section.SECURITY, SHOULD, "Play Integrity reaches at least basic integrity.", MANUAL, testIds = listOf("integrity.basic"), rom = Rom.EOS, reference = "$EOS_QA (#894)"),
+        Requirement("eos.buildtype", Section.DEVICE_TREE, SHOULD, "Builds released to users are of type user. userdebug is for validation.", AUTOMATED, listOf("eos.buildtype"), rom = Rom.EOS),
+        Requirement("eos.dns", Section.SECURITY, SHOULD, "Google's DNS servers are not used by default.", AUTOMATED, listOf("eos.dns"), rom = Rom.EOS),
+        Requirement("eos.integrity", Section.SECURITY, SHOULD, "Play Integrity reaches at least basic integrity.", MANUAL, testIds = listOf("integrity.basic"), rom = Rom.EOS),
         Requirement(
             "eos.verifiedboot", Section.SECURITY, SHOULD, "Official builds on lockable devices boot with the bootloader relocked and verity on.",
-            AUTOMATED, listOf("eos.verifiedboot"), rom = Rom.EOS, reference = EOS_RELOCK,
+            AUTOMATED, listOf("eos.verifiedboot"), rom = Rom.EOS,
         ),
         Requirement("sw.cve", Section.SECURITY, MUST, "High-profile publicized vulnerabilities are patched. Regular kernel and dependency patches SHOULD be applied.", ASSISTED, listOf("security.patch")),
 
@@ -159,8 +155,8 @@ object RequirementCatalog {
         Requirement("qol.recovery", Section.UPDATES, MUST, "Official LineageOS Recovery works (17.0+) and is the documented default (18.1+), or another zip install method is documented.", INTERACTIVE, testIds = listOf("recovery.boot"), rom = Rom.LINEAGE),
         Requirement("qol.addons", Section.UPDATES, MUST, "Add-ons listed on the wiki install through LineageOS Recovery (19.0+).", INTERACTIVE, testIds = listOf("recovery.addons"), rom = Rom.LINEAGE),
 
-        Requirement("eos.ota", Section.UPDATES, SHOULD, "Updates install over the air through the /e/OS updater.", INTERACTIVE, testIds = listOf("ota.update"), rom = Rom.EOS, reference = "$EOS_QA (#57 to #60)"),
-        Requirement("eos.install", Section.UPDATES, SHOULD, "A fresh install that follows the device's install guide boots.", INTERACTIVE, testIds = listOf("recovery.boot"), rom = Rom.EOS, reference = "$EOS_QA (#56)"),
+        Requirement("eos.ota", Section.UPDATES, SHOULD, "Updates install over the air through the /e/OS updater.", INTERACTIVE, testIds = listOf("ota.update"), rom = Rom.EOS),
+        Requirement("eos.install", Section.UPDATES, SHOULD, "A fresh install that follows the device's install guide boots.", INTERACTIVE, testIds = listOf("recovery.boot"), rom = Rom.EOS),
 
         Requirement("sw.blobs.extract", Section.BLOBS, MUST, "The extraction script reproduces the exact binaries from an existing LineageOS install.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
         Requirement("sw.blobs.sources", Section.BLOBS, MUST, "Blob sources follow the preference order and proprietary file lists note where files come from.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
@@ -174,12 +170,12 @@ object RequirementCatalog {
 
         Requirement("sw.livedisplay", Section.FEATURES, SHOULD, "In-kernel LiveDisplay color adjustment is supported.", AUTOMATED, listOf("livedisplay"), lineageOnly = true),
         Requirement("sw.browser", Section.FEATURES, MUST, "Jelly or another LineageOS-sourced browser ships.", AUTOMATED, listOf("browser.jelly"), rom = Rom.LINEAGE),
-        Requirement("eos.apps", Section.FEATURES, MUST, "App Lounge and Advanced Privacy ship, as in every /e/OS build.", AUTOMATED, listOf("eos.apps"), rom = Rom.EOS, reference = EOS_BUILD_TYPES),
-        Requirement("eos.browser", Section.FEATURES, MUST, "The /e/OS browser ships.", AUTOMATED, listOf("eos.browser"), rom = Rom.EOS, reference = EOS_BUILD_TYPES),
-        Requirement("eos.privacy", Section.FEATURES, SHOULD, "Advanced Privacy opens from the privacy settings.", MANUAL, testIds = listOf("privacy.dashboard"), rom = Rom.EOS, reference = EOS_BUILD_TYPES),
+        Requirement("eos.apps", Section.FEATURES, MUST, "App Lounge and Advanced Privacy ship, as in every /e/OS build.", AUTOMATED, listOf("eos.apps"), rom = Rom.EOS),
+        Requirement("eos.browser", Section.FEATURES, MUST, "The /e/OS browser ships.", AUTOMATED, listOf("eos.browser"), rom = Rom.EOS),
+        Requirement("eos.privacy", Section.FEATURES, SHOULD, "Advanced Privacy opens from the privacy settings.", MANUAL, testIds = listOf("privacy.dashboard"), rom = Rom.EOS),
         Requirement(
             "eos.microg", Section.FEATURES, SHOULD, "microG ships, its self-check is all green, and Exposure Notifications is off by default.",
-            INTERACTIVE, listOf("eos.microg"), listOf("microg.selfcheck"), rom = Rom.EOS, reference = "$EOS_ESSENTIALS (#97, #98)",
+            INTERACTIVE, listOf("eos.microg"), listOf("microg.selfcheck"), rom = Rom.EOS,
         ),
         Requirement("sw.deviations", Section.FEATURES, MUST, "Software deviations from same-type devices are approved and documented on the wiki.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
         Requirement("qol.stability", Section.FEATURES, MUST, "No screen-of-death issues and no abnormal battery drain.", INTERACTIVE, listOf("crashes.boot"), listOf("stability", "display.extradim")),
