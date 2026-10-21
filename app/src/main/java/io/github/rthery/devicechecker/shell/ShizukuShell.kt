@@ -67,7 +67,7 @@ object ShizukuShell : Shell {
     }
 
     fun refresh() {
-        _runsAsRoot.value = Shizuku.pingBinder() && runCatching { Shizuku.getUid() == 0 }.getOrDefault(false)
+        _runsAsRoot.value = uid == 0
         _state.value = when {
             !Shizuku.pingBinder() -> ShizukuState.NOT_RUNNING
             Shizuku.isPreV11() -> ShizukuState.UNSUPPORTED
@@ -88,6 +88,9 @@ object ShizukuShell : Shell {
     }
 
     val isReady: Boolean get() = service != null
+
+    /** The server's uid: 0 when started from a root shell, 2000 for adb shell; null when not running. */
+    val uid: Int? get() = if (Shizuku.pingBinder()) runCatching { Shizuku.getUid() }.getOrNull() else null
 
     /** Gives a just-started process a moment to reconnect; returns at once when Shizuku is not running. */
     suspend fun awaitReady(timeoutMs: Long = 3_000) {

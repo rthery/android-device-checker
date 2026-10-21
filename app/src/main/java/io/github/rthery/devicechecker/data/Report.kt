@@ -3,6 +3,7 @@ package io.github.rthery.devicechecker.data
 import io.github.rthery.devicechecker.BuildConfig
 import io.github.rthery.devicechecker.catalog.RequirementCatalog
 import io.github.rthery.devicechecker.checks.CheckResult
+import io.github.rthery.devicechecker.checks.RunConditions
 import io.github.rthery.devicechecker.profile.DeviceProfile
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -34,6 +35,7 @@ data class ReportEntry(
     val timestamp: String?,
     /** Paths relative to the reports folder, for adb pull. */
     val artifacts: List<String> = emptyList(),
+    val conditions: RunConditions? = null,
 )
 
 @Serializable
@@ -71,6 +73,9 @@ data class JsonReport(
     val checklistLicense: String,
     val legend: Map<String, String>,
     val device: Map<String, String>,
+    val buildType: String? = null,
+    /** Root state when the report was written; each entry has its own when it used Shizuku. */
+    val conditions: RunConditions? = null,
     val profile: DeviceProfile,
     val packs: List<ReportPack> = emptyList(),
     val summary: Map<String, Int>,
@@ -95,6 +100,8 @@ fun buildJsonReport(
     catalog: TestCatalog = TestCatalog.builtIn,
     shizukuReady: Boolean = false,
     hasStock: Boolean = false,
+    buildType: String? = null,
+    now: RunConditions? = null,
 ): JsonReport {
     val requirements = catalog.requirements.map { requirement ->
         val waiver = catalog.waivers[requirement.id]
@@ -103,7 +110,7 @@ fun buildJsonReport(
             val result = results[id]
             return ReportEntry(
                 id, kind, title, result?.status?.name, result?.summary, result?.details?.ifBlank { null },
-                result?.access?.name, result?.timestamp?.let(::formatTime), result?.artifacts.orEmpty(),
+                result?.access?.name, result?.timestamp?.let(::formatTime), result?.artifacts.orEmpty(), result?.conditions,
             )
         }
         ReportRequirement(
@@ -134,6 +141,8 @@ fun buildJsonReport(
         checklistLicense = RequirementCatalog.SOURCE_LICENSE,
         legend = OUTCOME_LEGEND.mapKeys { it.key.name },
         device = deviceInfo.entries.toMap(),
+        buildType = buildType,
+        conditions = now,
         profile = profile,
         packs = catalog.packs.map { ReportPack(it.id, it.name, it.rom, it.romVersion) },
         summary = requirements.groupingBy { it.outcome }.eachCount(),
@@ -157,6 +166,8 @@ fun JsonReport.toMarkdown(): String = buildString {
     appendLine("## Device")
     appendLine()
     device.forEach { (key, value) -> appendLine("- $key: $value") }
+    buildType?.let { appendLine("- Build type: $it") }
+    conditions?.label?.ifEmpty { null }?.let { appendLine("- Root state now: $it") }
     if (packs.isNotEmpty()) {
         appendLine()
         appendLine("Device packs: ${packs.joinToString { "${it.name} (`${it.id}`, ${it.rom}${it.romVersion?.let { version -> " $version" }.orEmpty()})" }}")
@@ -201,6 +212,7 @@ fun JsonReport.toMarkdown(): String = buildString {
                     appendLine("  ```")
                 }
                 if (entry.artifacts.isNotEmpty()) appendLine("  Artifacts: ${entry.artifacts.joinToString { "`$it`" }}")
+                entry.conditions?.label?.ifEmpty { null }?.let { appendLine("  Ran through $it") }
             }
         }
     }

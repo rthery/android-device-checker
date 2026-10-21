@@ -9,21 +9,26 @@ import io.github.rthery.devicechecker.checks.withCrashes
 import kotlinx.coroutines.launch
 import io.github.rthery.devicechecker.profile.DeviceProfile
 import io.github.rthery.devicechecker.shell.Shell
+import io.github.rthery.devicechecker.shell.TrackedShell
+import io.github.rthery.devicechecker.shell.currentRunConditions
 
 class TestScope(
     val activity: ComponentActivity,
     val profile: DeviceProfile,
-    val privilegedShell: Shell?,
+    shizuku: Shell?,
     private val onFinish: (CheckResult) -> Unit,
 ) {
-    val crashWatcher = CrashWatcher(privilegedShell)
+    private val tracked = shizuku?.let(::TrackedShell)
+    val privilegedShell: Shell? = tracked
+    val crashWatcher = CrashWatcher(shizuku)
     private val startedAt = crashWatcher.mark()
 
-    /** Attaches every crash that happened since the test screen opened. */
+    /** Attaches every crash that happened since the test screen opened, and the root state if Shizuku was used. */
     fun finish(result: CheckResult) {
         activity.lifecycleScope.launch {
             val crashes = crashWatcher.crashesSince(startedAt)
-            onFinish(result.withCrashes(crashes).copy(timestamp = System.currentTimeMillis()))
+            val conditions = if (tracked?.used == true) currentRunConditions() else null
+            onFinish(result.withCrashes(crashes).copy(timestamp = System.currentTimeMillis(), conditions = conditions))
         }
     }
 }

@@ -27,7 +27,19 @@ data class CheckResult(
     val byTester: Boolean = false,
     /** Files the test left for review, relative to the reports folder. */
     val artifacts: List<String> = emptyList(),
+    /** Set when the result went through Shizuku: under what uid, and whether adbd was root. */
+    val conditions: RunConditions? = null,
 )
+
+/** Root state a result was obtained under; root reads can pass where a user's phone fails. */
+@Serializable
+data class RunConditions(val shizukuUid: Int? = null, val adbRoot: Boolean? = null) {
+    val label: String
+        get() = listOfNotNull(
+            shizukuUid?.let { "Shizuku uid $it${if (it == 0) " (root)" else ""}" },
+            adbRoot?.let { if (it) "adbd root" else "adbd not root" },
+        ).joinToString(", ")
+}
 
 class Check(val id: String, val title: String, val run: suspend CheckContext.() -> CheckResult)
 
@@ -51,6 +63,9 @@ class CheckContext(
 
     val crashWatcher = CrashWatcher(privilegedShell)
 
+    /** Set by [read] and [execPrivileged] when a command ran through Shizuku; the caller resets it per check. */
+    var usedShizuku = false
+
     /** The last command [read] could not run as the app or through Shizuku. */
     private var blockedCommand: String? = null
 
@@ -63,6 +78,7 @@ class CheckContext(
             return ShellRead(asApp.output, Access.APP)
         }
         val privileged = privilegedShell ?: return ShellRead(null, Access.NONE)
+        usedShizuku = true
         val asShell = privileged.exec(command)
         if (asShell.succeeded && accept(asShell.output)) return ShellRead(asShell.output, Access.SHIZUKU)
         blockedCommand = command
@@ -78,7 +94,7 @@ class CheckContext(
         else blockedForShell(manualCommand)
 
     /** Shizuku only; null when it is not connected. */
-    suspend fun execPrivileged(command: String): ShellOutput? = privilegedShell?.exec(command)
+    suspend fun execPrivileged(command: String): ShellOutput? = privilegedShell?.also { usedShizuku = true }?.exec(command)
 
     fun readFileAsApp(path: String): String? = runCatching { File(path).readText().trim() }.getOrNull()
 

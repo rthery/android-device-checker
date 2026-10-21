@@ -12,7 +12,10 @@ import io.github.rthery.devicechecker.pack.PackEntry
 import io.github.rthery.devicechecker.pack.PackOrigin
 import io.github.rthery.devicechecker.pack.PackManager
 import io.github.rthery.devicechecker.profile.DeviceProfile
+import io.github.rthery.devicechecker.checks.RunConditions
+import io.github.rthery.devicechecker.shell.AdbRoot
 import io.github.rthery.devicechecker.shell.ShizukuShell
+import io.github.rthery.devicechecker.shell.currentRunConditions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -191,9 +194,12 @@ class Repository private constructor(context: Context) {
                 writeStatus("running", "${index + 1}/${checks.size} ${check.id}")
                 val startedAt = context.crashWatcher.mark()
                 val startedElapsed = android.os.SystemClock.elapsedRealtime()
-                val result = runCatchingCheck { check.run(context) }
+                context.usedShizuku = false
+                val outcome = runCatchingCheck { check.run(context) }
+                val conditions = if (context.usedShizuku) currentRunConditions() else null
+                val result = outcome
                     .withCrashes(context.crashWatcher.crashesSince(startedAt))
-                    .copy(timestamp = System.currentTimeMillis())
+                    .copy(timestamp = System.currentTimeMillis(), conditions = conditions)
                 // Keep a single quick check visible long enough to show its progress.
                 if (checks.size == 1) {
                     delay((600 - (android.os.SystemClock.elapsedRealtime() - startedElapsed)).coerceAtLeast(0))
@@ -327,11 +333,13 @@ class Repository private constructor(context: Context) {
     fun buildReport(): JsonReport = buildJsonReport(
         _deviceInfo.value, _profile.value, _results.value, _verdicts.value, _catalog.value,
         shizukuReady = ShizukuShell.isReady, hasStock = _stock.value != null,
+        buildType = android.os.Build.TYPE, now = RunConditions(ShizukuShell.uid, AdbRoot.state.value),
     )
 
     val lineageBased: Boolean get() = _deviceInfo.value.lineageBased
 
     suspend fun exportReports(snapshot: Boolean) = withContext(Dispatchers.IO) {
+        AdbRoot.refresh()
         if (_deviceInfo.value.entries.isEmpty()) _deviceInfo.value = DeviceInfo.read(appContext)
         val report = buildReport()
         val dir = reportsDir
