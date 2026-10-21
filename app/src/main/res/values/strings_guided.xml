@@ -14,10 +14,11 @@
     <string name="guided_call_audio_step_7">Receive an incoming call: it rings and can be answered.</string>
     <string name="guided_emergency_call_intro">Do not dial a real emergency number to test this. Only place a real call if your emergency service or carrier offers a test procedure.</string>
     <string name="guided_emergency_call_step_1">The lock screen shows an Emergency call button and it opens the emergency dialer.</string>
-    <string name="guided_emergency_call_step_2">With a SIM: the dialer recognizes the local emergency number (it shows the emergency call styling as you type it, do not press call).</string>
-    <string name="guided_emergency_call_step_3">Without a SIM: the status bar or lock screen shows \"Emergency calls only\" when a network is in range.</string>
-    <string name="guided_action_show_emergency_numbers">Show emergency numbers</string>
-    <string name="guided_emergency_call_step_4">Read the emergency numbers the device knows</string>
+    <string name="guided_emergency_call_step_2">The button opens the emergency dialer, the same screen as the lock screen button. Do not press call.</string>
+    <string name="guided_action_check_emergency_numbers">Check emergency numbers</string>
+    <string name="guided_emergency_call_step_3">With a SIM: the device treats the local emergency numbers (for example 112, and 15, 17, 18 in France) as emergency and the control 1234 as not emergency. The app only asks telephony, nothing is dialed.</string>
+    <string name="guided_emergency_call_step_4">In the emergency dialer, type 1234 and press call: it refuses with a \"not an emergency number\" message and places no call.</string>
+    <string name="guided_emergency_call_step_5">Without a SIM: the status bar or lock screen shows \"Emergency calls only\" when a network is in range.</string>
     <string name="guided_messaging_intro">You need a SIM with SMS and mobile data, and another phone. MMS needs mobile data on, even when Wi-Fi is connected.</string>
     <string name="guided_messaging_step_1">Send an SMS to the other phone: it arrives.</string>
     <string name="guided_messaging_step_2">Reply from the other phone: the SMS arrives here and shows a notification.</string>

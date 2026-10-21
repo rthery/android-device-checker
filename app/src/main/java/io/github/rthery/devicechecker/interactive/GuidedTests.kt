@@ -1,5 +1,8 @@
 package io.github.rthery.devicechecker.interactive
 
+import android.os.Build
+import android.telephony.PhoneNumberUtils
+import android.telephony.TelephonyManager
 import androidx.annotation.StringRes
 import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.shell.AppShell
@@ -17,6 +20,24 @@ private fun appAction(@StringRes label: Int, command: String) = StepAction(label
 
 private fun guided(id: String, title: String, summary: String, @StringRes intro: Int, vararg steps: Step) =
     InteractiveTest(id, title, summary, manual = true) { scope -> GuidedSteps(scope, id, UiText.Res(intro), steps.toList()) }
+
+/** Asks telephony whether each known number counts as an emergency number; nothing is dialed. */
+private val emergencyNumbersAction = StepAction(R.string.guided_action_check_emergency_numbers) {
+    val ecclist = AppShell.exec("getprop ril.ecclist; getprop ril.ecclist1; getprop ro.ril.ecclist").output
+    val numbers = (ecclist.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() } + "112").distinct()
+    val telephony = activity.getSystemService(TelephonyManager::class.java)
+    fun isEmergency(number: String): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) telephony.isEmergencyNumber(number)
+        else @Suppress("DEPRECATION") PhoneNumberUtils.isEmergencyNumber(number)
+    val lines = (numbers + EMERGENCY_CONTROL_NUMBER).map { number ->
+        val verdict = runCatching { if (isEmergency(number)) "emergency" else "not emergency" }.getOrElse { "error: ${it.message}" }
+        val expected = if (number == EMERGENCY_CONTROL_NUMBER) " (control, should be not emergency)" else ""
+        "$number: $verdict$expected"
+    }
+    "ril.ecclist: ${ecclist.lines().filter { it.isNotBlank() }.joinToString(" | ").ifEmpty { "(empty)" }}\n" + lines.joinToString("\n")
+}
+
+private const val EMERGENCY_CONTROL_NUMBER = "1234"
 
 private val usbState = shellAction(R.string.guided_action_show_usb_state, "svc usb getFunctions 2>&1; dumpsys usb | grep -iE 'connected|configured|current_functions|data_role' | head -10")
 private val tetherState = shellAction(R.string.guided_action_show_tethering_state, "dumpsys tethering | grep -iE 'tethered|state|upstream' | head -20")
@@ -37,9 +58,10 @@ val guidedTests = listOf(
         "emergency.call", "Emergency calling", "Checks emergency calling is reachable, without dialing a real emergency number.",
         R.string.guided_emergency_call_intro,
         Step(R.string.guided_emergency_call_step_1),
-        Step(R.string.guided_emergency_call_step_2),
-        Step(R.string.guided_emergency_call_step_3),
-        Step(R.string.guided_emergency_call_step_4, action = appAction(R.string.guided_action_show_emergency_numbers, "getprop ril.ecclist; getprop ril.ecclist1; getprop ro.ril.ecclist")),
+        Step(R.string.guided_emergency_call_step_2, shortcut = Shortcuts.emergencyDialer),
+        Step(R.string.guided_emergency_call_step_3, action = emergencyNumbersAction),
+        Step(R.string.guided_emergency_call_step_4, shortcut = Shortcuts.emergencyDialer),
+        Step(R.string.guided_emergency_call_step_5),
     ),
     guided(
         "messaging", "SMS and MMS", "Sends and receives a text and a picture message.",

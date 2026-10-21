@@ -50,6 +50,9 @@ object Shortcuts {
         )
     }
     val dialer = Shortcut(R.string.shortcut_dialer) { listOf(Intent(Intent.ACTION_DIAL)) }
+    val emergencyDialer = Shortcut(R.string.shortcut_emergency_dialer) {
+        listOf(Intent("android.intent.action.DIAL_EMERGENCY"), Intent("com.android.phone.EmergencyDialer.DIAL"))
+    }
     val messaging = Shortcut(R.string.shortcut_messaging) { context ->
         listOfNotNull(
             Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING),
