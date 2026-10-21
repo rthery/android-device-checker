@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.checks.CheckContext
 import io.github.rthery.devicechecker.checks.CheckResult
+import io.github.rthery.devicechecker.checks.CheckStatus
 import io.github.rthery.devicechecker.checks.fail
 import io.github.rthery.devicechecker.checks.pass
 import io.github.rthery.devicechecker.checks.warn
@@ -122,6 +123,19 @@ fun integrityIconResult(basicIcon: String, installer: String?): CheckResult {
     }
 }
 
+private const val ADB_ROOT_NOTE = "adbd runs as root (service.adb.root=1). Play Integrity does not meet basic integrity while it does."
+
+/** A fail while adbd runs as root says nothing about the build, so it becomes a warning. */
+fun withAdbRootNote(result: CheckResult, adbRoot: Boolean): CheckResult = when {
+    !adbRoot -> result
+    result.status == CheckStatus.FAIL -> result.copy(
+        status = CheckStatus.WARN,
+        summary = "Fails while adbd runs as root: run adb unroot and test again",
+        details = "$ADB_ROOT_NOTE\n${result.details}",
+    )
+    else -> result.copy(details = "$ADB_ROOT_NOTE\n${result.details}")
+}
+
 /** `pm list packages -i` line: `package:<name>  installer=<installer>`. */
 fun parseInstaller(output: String): String? =
     Regex("installer=(\\S+)").find(output)?.groupValues?.get(1)?.takeIf { it != "null" }
@@ -136,8 +150,10 @@ suspend fun runIntegrityCheck(shell: Shell, returnComponent: String?, log: (Stri
     }
     val installer = parseInstaller(shell.exec("pm list packages -i $INTEGRITY_APP").output)
     log("Installed by ${installer ?: "unknown"}")
+    val adbRoot = shell.exec("getprop service.adb.root").output.trim() == "1"
+    if (adbRoot) log("adbd runs as root: basic integrity will fail")
     try {
-        return driveIntegrityApp(shell, installer, log)
+        return withAdbRootNote(driveIntegrityApp(shell, installer, log), adbRoot)
     } finally {
         shell.exec("rm -f $UI_DUMP")
         returnComponent?.let { shell.exec("am start -n $it") }

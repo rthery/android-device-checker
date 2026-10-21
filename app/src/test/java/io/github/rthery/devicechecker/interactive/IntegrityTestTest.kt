@@ -90,4 +90,21 @@ class IntegrityTestTest {
         assertEquals("com.android.vending", parseInstaller("package:gr.nikolasspyr.integritycheck  installer=com.android.vending"))
         assertNull(parseInstaller("package:gr.nikolasspyr.integritycheck  installer=null"))
     }
+
+    @Test
+    fun adbRootTurnsAFailIntoAWarning() {
+        val failed = integrityIconResult("Fail", null)
+        val rooted = withAdbRootNote(failed, adbRoot = true)
+        assertEquals(CheckStatus.WARN, rooted.status)
+        assertTrue(rooted.summary.contains("adb unroot"))
+        assertTrue(rooted.details.startsWith("adbd runs as root"))
+        assertEquals(failed, withAdbRootNote(failed, adbRoot = false))
+    }
+
+    @Test
+    fun adbRootIsNotedOnAPass() {
+        val rooted = withAdbRootNote(integrityIconResult("Pass", null), adbRoot = true)
+        assertEquals(CheckStatus.PASS, rooted.status)
+        assertTrue(rooted.details.startsWith("adbd runs as root"))
+    }
 }
