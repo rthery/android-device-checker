@@ -51,7 +51,8 @@ private enum class Pushed { NONE, PROFILE, PACKS, ABOUT }
 fun App(viewModel: MainViewModel) {
     val context = LocalContext.current
     val dark = isSystemInDarkTheme()
-    val hints by viewModel.theme.collectAsStateWithLifecycle()
+    val loaded = viewModel.theme.collectAsStateWithLifecycle().value ?: return
+    val hints = loaded.hints
     val system = when {
         Build.VERSION.SDK_INT >= 31 -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         dark -> darkColorScheme()

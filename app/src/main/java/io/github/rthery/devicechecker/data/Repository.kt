@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -103,9 +104,21 @@ class Repository private constructor(context: Context) {
     private val _catalog = MutableStateFlow(TestCatalog.builtIn)
     val catalog: StateFlow<TestCatalog> = _catalog.asStateFlow()
 
+    private val _startupLoaded = MutableStateFlow(false)
+    /** True once the ROM and the enabled packs, which set the test list and theme, have been read. */
+    val startupLoaded: StateFlow<Boolean> = _startupLoaded.asStateFlow()
+
     init {
-        scope.launch { _deviceInfo.value = DeviceInfo.read(appContext) }
-        scope.launch { reloadPacks() }
+        scope.launch {
+            try {
+                listOf(
+                    launch { _deviceInfo.value = DeviceInfo.read(appContext) },
+                    launch { reloadPacks() },
+                ).joinAll()
+            } finally {
+                _startupLoaded.value = true
+            }
+        }
     }
 
     private suspend fun reloadPacks() {

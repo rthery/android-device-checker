@@ -3,12 +3,17 @@ package io.github.rthery.devicechecker.pack
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.annotation.StyleRes
+import io.github.rthery.devicechecker.R
 
-/** Icons bundled in the APK, one launcher activity-alias each. Packs pick one by [key]; they cannot ship images. */
-enum class LauncherIcon(val key: String, private val alias: String) {
-    AOSP("aosp", "LauncherAosp"),
-    LINEAGE("lineage", "LauncherLineage"),
-    EOS("eos", "LauncherEos");
+/**
+ * Icons bundled in the APK, one launcher activity-alias each. Packs pick one by [key]; they cannot ship images.
+ * The splash screen ignores the alias icon, so [splashTheme] carries it.
+ */
+enum class LauncherIcon(val key: String, private val alias: String, @StyleRes val splashTheme: Int) {
+    AOSP("aosp", "LauncherAosp", R.style.Theme_DeviceChecker_SplashAosp),
+    LINEAGE("lineage", "LauncherLineage", R.style.Theme_DeviceChecker_SplashLineage),
+    EOS("eos", "LauncherEos", R.style.Theme_DeviceChecker_SplashEos);
 
     companion object {
         val keys: Set<String> = entries.map { it.key }.toSet()

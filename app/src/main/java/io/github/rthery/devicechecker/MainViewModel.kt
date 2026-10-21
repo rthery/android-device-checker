@@ -18,7 +18,7 @@ import io.github.rthery.devicechecker.pack.PackEntry
 import io.github.rthery.devicechecker.pack.ThemeHints
 import android.net.Uri
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import io.github.rthery.devicechecker.data.toJson
 import io.github.rthery.devicechecker.data.toMarkdown
@@ -50,9 +50,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setRequirementPriority(priority: io.github.rthery.devicechecker.data.RequirementPriority) = repository.setRequirementPriority(priority)
     fun toggleCategory(category: io.github.rthery.devicechecker.data.Category) = repository.toggleCategory(category)
     val packs: StateFlow<List<PackEntry>> = repository.packs
-    val theme: StateFlow<ThemeHints?> = repository.catalog
-        .map { it.theme }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.catalog.value.theme)
+    /** Null until startup data is read, so the first frame already shows the right tests and theme. */
+    val theme: StateFlow<LoadedTheme?> = combine(repository.startupLoaded, repository.catalog) { loaded, catalog -> if (loaded) LoadedTheme(catalog.theme) else null }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     data class StockTransfer(val busy: Boolean = false, val message: UiText? = null, val error: Boolean = false)
     private val _stockTransfer = MutableStateFlow(StockTransfer())
@@ -162,3 +162,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun jsonReport(): String = repository.buildReport().toJson()
 }
+
+data class LoadedTheme(val hints: ThemeHints?)

@@ -2,6 +2,8 @@ package io.github.rthery.devicechecker
 
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import io.github.rthery.devicechecker.pack.LauncherIcon
 import io.github.rthery.devicechecker.shell.ShizukuShell
 import io.github.rthery.devicechecker.ui.App
 import kotlinx.coroutines.launch
@@ -24,6 +27,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { App(viewModel) }
+        holdSplashUntilThemed()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 AdbLinks.pending.collect { link ->
@@ -44,6 +48,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** Keeps the splash up until the packs' theme is known, then makes the next splash show their icon. */
+    private fun holdSplashUntilThemed() {
+        val content = findViewById<View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                val loaded = viewModel.theme.value ?: return false
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                if (Build.VERSION.SDK_INT >= 33) splashScreen.setSplashScreenTheme(LauncherIcon.from(loaded.hints?.icon).splashTheme)
+                return true
+            }
+        })
     }
 
     override fun onResume() {

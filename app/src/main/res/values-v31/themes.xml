@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.DeviceChecker.SplashAosp">
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+    </style>
+    <style name="Theme.DeviceChecker.SplashLineage">
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_lineage</item>
+    </style>
+    <style name="Theme.DeviceChecker.SplashEos">
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_eos</item>
+    </style>
+</resources>

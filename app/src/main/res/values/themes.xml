@@ -4,4 +4,9 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- Splash themes per launcher icon; the icon itself is set from API 31 in values-v31. -->
+    <style name="Theme.DeviceChecker.SplashAosp" />
+    <style name="Theme.DeviceChecker.SplashLineage" />
+    <style name="Theme.DeviceChecker.SplashEos" />
 </resources>
