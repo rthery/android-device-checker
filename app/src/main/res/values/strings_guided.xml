@@ -109,7 +109,11 @@
     <string name="guided_microg_selfcheck_step_2">Exposure Notifications is off by default.</string>
     <string name="guided_privacy_dashboard_intro">Advanced Privacy ships with every /e/OS build.</string>
     <string name="guided_privacy_dashboard_step_1">Advanced Privacy is reachable from the privacy settings and its dashboard opens.</string>
-    <string name="guided_integrity_basic_intro">Needs network access and an app that calls the Play Integrity API, such as Play Integrity API Checker from App Lounge.</string>
+    <string name="integrity_manual_intro">Needs network access and Play Integrity API Checker from App Lounge. Connect Shizuku and the app runs the check and reads the verdict for you.</string>
+    <string name="integrity_auto_intro">Install Play Integrity API Checker from App Lounge once. The app then opens it, runs the check and reads the verdict through Shizuku. Keep the phone unlocked while it runs.</string>
+    <string name="integrity_open_app_lounge">Open in App Lounge</string>
+    <string name="integrity_run">Run the check</string>
+    <string name="integrity_running">Running…</string>
     <string name="guided_integrity_basic_step_1">Install Play Integrity API Checker from App Lounge and open it.</string>
     <string name="guided_integrity_basic_step_2">Run the check: it reports MEETS_BASIC_INTEGRITY. Device and strong integrity are not expected.</string>
     <string name="guided_display_extradim_intro">Extra Dim once got stuck on. Toggle it from Quick Settings and check the setting follows.</string>

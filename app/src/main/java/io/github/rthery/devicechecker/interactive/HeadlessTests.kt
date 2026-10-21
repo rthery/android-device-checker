@@ -56,6 +56,7 @@ val headlessTests = listOf(
     Check("audio.input", "Microphones") { micsHeadless() },
     Check("bluetooth.scan", "Bluetooth scan") { bluetoothHeadless() },
     Check("gnss.fix", "GPS fix") { gnssHeadless() },
+    Check("integrity.basic", "Play Integrity basic") { integrityHeadless() },
 )
 
 object HeadlessRegistry {

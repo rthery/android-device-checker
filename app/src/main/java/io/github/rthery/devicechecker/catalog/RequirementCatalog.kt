@@ -144,7 +144,7 @@ object RequirementCatalog {
         Requirement("sw.playintegrity", Section.SECURITY, MUST_NOT, "Play Integrity responses are not altered.", ASSISTED, listOf("build.fingerprint")),
         Requirement("eos.buildtype", Section.DEVICE_TREE, SHOULD, "Builds released to users are of type user. userdebug is for validation.", AUTOMATED, listOf("eos.buildtype"), rom = Rom.EOS),
         Requirement("eos.dns", Section.SECURITY, SHOULD, "Google's DNS servers are not used by default.", AUTOMATED, listOf("eos.dns"), rom = Rom.EOS),
-        Requirement("eos.integrity", Section.SECURITY, SHOULD, "Play Integrity reaches at least basic integrity.", MANUAL, testIds = listOf("integrity.basic"), rom = Rom.EOS),
+        Requirement("eos.integrity", Section.SECURITY, SHOULD, "Play Integrity reaches at least basic integrity.", INTERACTIVE, testIds = listOf("integrity.basic"), rom = Rom.EOS),
         Requirement(
             "eos.verifiedboot", Section.SECURITY, SHOULD, "Official builds on lockable devices boot with the bootloader relocked and verity on.",
             AUTOMATED, listOf("eos.verifiedboot"), rom = Rom.EOS,

@@ -177,12 +177,6 @@ val guidedTests = listOf(
         Step(R.string.guided_privacy_dashboard_step_1, shortcut = Shortcuts.privacy),
     ),
     guided(
-        "integrity.basic", "Play Integrity basic", "Checks the build passes Play Integrity basic integrity through microG.",
-        R.string.guided_integrity_basic_intro,
-        Step(R.string.guided_integrity_basic_step_1),
-        Step(R.string.guided_integrity_basic_step_2),
-    ),
-    guided(
         "display.extradim", "Extra Dim and color modes", "Toggles Extra Dim and checks it really turns off.",
         R.string.guided_display_extradim_intro,
         Step(R.string.guided_display_extradim_step_1, action = shellAction(R.string.guided_action_read_extra_dim_state, "settings get secure reduce_bright_colors_activated; dumpsys color_display | grep -iE 'reduce bright|activated' | head -4")),
