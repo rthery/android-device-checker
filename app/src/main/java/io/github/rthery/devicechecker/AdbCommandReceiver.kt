@@ -8,6 +8,7 @@ import android.content.Intent
 import android.util.Log
 import io.github.rthery.devicechecker.data.Repository
 import io.github.rthery.devicechecker.data.Verdict
+import io.github.rthery.devicechecker.data.isBulkRun
 import io.github.rthery.devicechecker.shell.ShizukuShell
 import kotlinx.coroutines.launch
 
@@ -21,7 +22,8 @@ class AdbCommandReceiver : BroadcastReceiver() {
         val repository = Repository.get(context)
         when (intent.action) {
             ACTION_RUN_CHECKS -> repository.scope.launch {
-                repository.runChecks(repository.resolveRun(intent.getStringExtra(EXTRA_IDS)))
+                val spec = intent.getStringExtra(EXTRA_IDS)
+                repository.runChecks(repository.resolveRun(spec), keepTesterResults = isBulkRun(spec))
             }
             ACTION_SET_RESULT -> {
                 val id = intent.getStringExtra(EXTRA_TEST)

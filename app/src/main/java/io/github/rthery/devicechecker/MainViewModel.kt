@@ -8,6 +8,7 @@ import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.data.DeviceInfo
 import io.github.rthery.devicechecker.data.ManualVerdict
 import io.github.rthery.devicechecker.data.Repository
+import io.github.rthery.devicechecker.data.isBulkRun
 import io.github.rthery.devicechecker.data.HistoryEntry
 import io.github.rthery.devicechecker.data.RunProgress
 import io.github.rthery.devicechecker.data.RunSummary
@@ -127,7 +128,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val deepLink: StateFlow<DeepLink?> = _deepLink.asStateFlow()
 
     fun deepLink(run: String?, test: String?, tab: String?, options: Map<String, Int>) {
-        if (run != null) repository.startRun(repository.resolveRun(run), options)
+        if (run != null) repository.startRun(repository.resolveRun(run), options, isBulkRun(run))
         _deepLink.value = DeepLink(test, tab ?: if (run != null) "tests" else null)
     }
 
@@ -135,11 +136,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _deepLink.value = null
     }
 
-    fun runAllAutomatic() = repository.startRun(catalog.value.all.filter { it.kind == io.github.rthery.devicechecker.data.TestKind.AUTO }.map { it.id }.toSet())
+    fun runAllAutomatic() = repository.startRun(catalog.value.all.filter { it.kind == io.github.rthery.devicechecker.data.TestKind.AUTO }.map { it.id }.toSet(), keepTesterResults = true)
 
     fun runOne(testId: String) = repository.startRun(setOf(testId))
 
-    fun runTests(testIds: Set<String>) = repository.startRun(testIds)
+    fun runTests(testIds: Set<String>) = repository.startRun(testIds, keepTesterResults = true)
 
     fun stopRun() = repository.stopRun()
 

@@ -155,9 +155,9 @@ class Repository private constructor(context: Context) {
     }
 
     /** Starts a run in the repository scope so it survives screen changes; ignored while one runs. */
-    fun startRun(ids: Set<String>? = null, options: Map<String, Int> = emptyMap()) {
+    fun startRun(ids: Set<String>? = null, options: Map<String, Int> = emptyMap(), keepTesterResults: Boolean = false) {
         if (runJob?.isActive == true) return
-        runJob = scope.launch { runChecks(ids, options) }
+        runJob = scope.launch { runChecks(ids, options, keepTesterResults) }
     }
 
     /**
@@ -179,12 +179,16 @@ class Repository private constructor(context: Context) {
         _lastRun.value = null
     }
 
-    suspend fun runChecks(ids: Set<String>? = null, options: Map<String, Int> = emptyMap()) = runMutex.withLock {
+    /** With [keepTesterResults], tests the tester already marked are left out of the run. */
+    suspend fun runChecks(ids: Set<String>? = null, options: Map<String, Int> = emptyMap(), keepTesterResults: Boolean = false) = runMutex.withLock {
         writeStatus("running", "starting")
         ShizukuShell.awaitReady()
         val context = CheckContext(appContext, _profile.value, ShizukuShell.takeIf { it.isReady }, DeviceInfo.detectRom(appContext), reportsDir, options, _stock.value)
-        val checks = if (ids == null) _catalog.value.checks
+        val selected = if (ids == null) _catalog.value.checks
         else (_catalog.value.checks + HeadlessRegistry.all).filter { it.id in ids }.distinctBy { it.id }
+        val kept = if (keepTesterResults) testerMarkedIds(selected.map { it.id }, _results.value) else emptySet()
+        if (kept.isNotEmpty()) Log.i(TAG, "Keeping tester results: ${kept.joinToString()}")
+        val checks = selected.filter { it.id !in kept }
         var ran = 0
         var stopped = false
         try {
