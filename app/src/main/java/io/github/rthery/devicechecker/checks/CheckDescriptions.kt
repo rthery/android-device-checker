@@ -48,7 +48,7 @@ val CHECK_HOW: Map<String, List<String>> = mapOf(
     "audio.effects" to listOf("Asks Android which voice effects exist", "Lists the built-in microphones"),
     "network.wifi" to listOf("Requests a Wi-Fi network and fetches a 204 page over it", "Checks the default route and validation"),
     "network.cellular" to listOf("Checks the SIM, then fetches a 204 page over mobile data"),
-    "network.trafficstats" to listOf("Fetches one page and checks the app's traffic counter moved"),
+    "network.trafficstats" to listOf("Fetches a page untagged and one with a socket tag", "Checks the device and per-app counters moved", "With Shizuku, forces a stats poll and checks the tagged bytes reach the data usage history"),
     "sd.readwrite" to listOf("Writes 16 MB to the SD card, reads it back and compares checksums"),
     "charging.usb" to listOf("Reads the USB charger type and input current limit", "Flags a standard USB port allowed more than 500 mA"),
     "battery.capacity" to listOf("Reads the design and full charge capacity from the battery or bms power supply", "You compare them with the device spec"),

@@ -1,6 +1,8 @@
 package io.github.rthery.devicechecker.checks
 
 import io.github.rthery.devicechecker.compat.Compat
+import android.app.usage.NetworkStats
+import android.app.usage.NetworkStatsManager
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
@@ -59,18 +61,7 @@ val extraChecks = listOf(
             ?: fail("SIM ready but no mobile data network came up in ${NETWORK_TIMEOUT_MS / 1000} s", "Check that mobile data is on and the APN is set.")
     },
 
-    Check("network.trafficstats", "Traffic accounting") {
-        val total = TrafficStats.getTotalRxBytes()
-        val before = TrafficStats.getUidRxBytes(android.os.Process.myUid())
-        probeInternet(NetworkCapabilities.TRANSPORT_WIFI) ?: probeInternet(NetworkCapabilities.TRANSPORT_CELLULAR)
-        val after = TrafficStats.getUidRxBytes(android.os.Process.myUid())
-        val details = "Total RX $total\nApp RX before $before, after $after\nro.kernel.ebpf.supported=${prop("ro.kernel.ebpf.supported").ifEmpty { "unset" }}\nKernel ${System.getProperty("os.version")}"
-        when {
-            total == TrafficStats.UNSUPPORTED.toLong() -> warn("Traffic stats unsupported: data usage and per-app limits will not work", details)
-            after == TrafficStats.UNSUPPORTED.toLong() || after <= before -> warn("Per-app traffic is not counted (no eBPF accounting?)", details)
-            else -> pass("Traffic is counted per app (${after - before} bytes for one request)", details)
-        }
-    },
+    Check("network.trafficstats", "Traffic accounting") { trafficAccounting() },
 
     Check("sd.readwrite", "SD card write and read") {
         if (!profile.stockHasSdSlot) return@Check notApplicable("Stock has no SD slot")
@@ -137,6 +128,79 @@ private fun toMicroAmps(value: Int): Int = if (value in 1 until 20_000) value * 
 
 /** Kernels report µAh, a few report mAh. */
 private fun toMilliAmpHours(value: Long): Long = if (value >= 100_000) value / 1000 else value
+
+// Arbitrary, outside the reserved 0xFFFFFF00-0xFFFFFFFF system range.
+private const val CHECKER_STATS_TAG = 0x0dc1
+
+private suspend fun CheckContext.trafficAccounting(): CheckResult {
+    val uid = android.os.Process.myUid()
+    val totalBefore = TrafficStats.getTotalRxBytes()
+    val uidBefore = TrafficStats.getUidRxBytes(uid)
+    val polled = execPrivileged("dumpsys netstats --poll") != null
+    val start = System.currentTimeMillis() - HISTORY_WINDOW_MS
+    val tagBefore = if (polled) taggedRxBytes(uid, start) else null
+    val untagged = fetchDefault()
+    val tagged = fetchDefault(CHECKER_STATS_TAG)
+    val totalAfter = TrafficStats.getTotalRxBytes()
+    val uidAfter = TrafficStats.getUidRxBytes(uid)
+    if (polled) execPrivileged("dumpsys netstats --poll")
+    val tagAfter = if (polled) taggedRxBytes(uid, start) else null
+    val unsupported = TrafficStats.UNSUPPORTED.toLong()
+    val details = "Requests: untagged ${untagged ?: "failed"}, tagged 0x${CHECKER_STATS_TAG.toString(16)} ${tagged ?: "failed"}\n" +
+        "Total RX $totalBefore -> $totalAfter\nApp RX $uidBefore -> $uidAfter\n" +
+        "Tagged RX in history ${tagBefore ?: "n/a"} -> ${tagAfter ?: "n/a"}\n" +
+        "ro.kernel.ebpf.supported=${prop("ro.kernel.ebpf.supported").ifEmpty { "unset" }}\nKernel ${System.getProperty("os.version")}"
+    val access = if (polled) Access.SHIZUKU else Access.APP
+    return when {
+        untagged == null || tagged == null -> warn("No internet to generate traffic. Connect and run again.", details, access)
+        totalAfter == unsupported -> fail("Traffic stats unsupported: data usage and per-app limits will not work", details, access)
+        totalAfter <= totalBefore -> fail("Device total counter did not move", details, access)
+        uidAfter == unsupported || uidAfter <= uidBefore -> fail("Per-app traffic is not counted", details, access)
+        tagAfter == null -> warn("Per-app traffic is counted (${uidAfter - uidBefore} bytes). Connect Shizuku to check tagged history.", details, access)
+        tagAfter <= (tagBefore ?: 0L) -> fail("Tagged traffic does not reach the data usage history", details, access)
+        else -> pass("Per-app and tagged traffic counted (${uidAfter - uidBefore} bytes, tag ${tagAfter - (tagBefore ?: 0L)})", details, access)
+    }
+}
+
+private const val HISTORY_WINDOW_MS = 2 * 60 * 60 * 1000L
+
+// The tag is per thread, so it is set on the IO thread that opens the socket.
+private suspend fun fetchDefault(tag: Int? = null): Int? = withContext(Dispatchers.IO) {
+    val previousTag = TrafficStats.getThreadStatsTag()
+    if (tag != null) TrafficStats.setThreadStatsTag(tag)
+    runCatching {
+        val connection = URL(CONNECTIVITY_URL).openConnection() as HttpURLConnection
+        try {
+            connection.connectTimeout = NETWORK_TIMEOUT_MS
+            connection.readTimeout = NETWORK_TIMEOUT_MS
+            connection.useCaches = false
+            // Sockets are tagged when created, so a pooled connection would keep its old tag.
+            connection.setRequestProperty("Connection", "close")
+            connection.responseCode
+        } finally {
+            connection.disconnect()
+        }
+    }.getOrNull().also { TrafficStats.setThreadStatsTag(previousTag) }
+}
+
+private suspend fun CheckContext.taggedRxBytes(uid: Int, start: Long): Long? = withContext(Dispatchers.IO) {
+    val connectivity = context.getSystemService(ConnectivityManager::class.java)
+    val caps = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return@withContext null
+    val type = when {
+        caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> ConnectivityManager.TYPE_WIFI
+        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> ConnectivityManager.TYPE_MOBILE
+        else -> return@withContext null
+    }
+    val stats = context.getSystemService(NetworkStatsManager::class.java)
+    runCatching {
+        stats.queryDetailsForUidTag(type, null, start, System.currentTimeMillis() + HISTORY_WINDOW_MS, uid, CHECKER_STATS_TAG).use { history ->
+            var bytes = 0L
+            val bucket = NetworkStats.Bucket()
+            while (history.getNextBucket(bucket)) bytes += bucket.rxBytes
+            bytes
+        }
+    }.getOrNull()
+}
 
 private suspend fun CheckContext.probeInternet(transport: Int): CheckResult? {
     val connectivity = context.getSystemService(ConnectivityManager::class.java)
