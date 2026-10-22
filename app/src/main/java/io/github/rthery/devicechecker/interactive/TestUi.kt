@@ -42,6 +42,28 @@ import io.github.rthery.devicechecker.checks.fail
 import io.github.rthery.devicechecker.checks.notApplicable
 import io.github.rthery.devicechecker.checks.pass
 import io.github.rthery.devicechecker.checks.warn
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import io.github.rthery.devicechecker.data.TestState
+import io.github.rthery.devicechecker.ui.AnswerLine
+import io.github.rthery.devicechecker.ui.Glyphs
+import io.github.rthery.devicechecker.ui.StepLine
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -108,7 +130,11 @@ class Step(
 }
 
 @Serializable
-enum class StepAnswer(@StringRes val label: Int) { PASS(R.string.step_works), FAIL(R.string.step_broken), SKIP(R.string.step_cant_test) }
+enum class StepAnswer(@StringRes val label: Int, val icon: ImageVector, val state: TestState) {
+    PASS(R.string.step_works, Icons.Filled.Check, TestState.PASS),
+    FAIL(R.string.step_broken, Icons.Filled.Close, TestState.FAIL),
+    SKIP(R.string.step_cant_test, Glyphs.Block, TestState.NA),
+}
 
 /** Answers and action outputs kept between visits, keyed by step index. */
 @Serializable
@@ -116,7 +142,7 @@ data class GuidedDraft(val answers: Map<Int, StepAnswer> = emptyMap(), val outpu
     fun isEmpty() = answers.isEmpty() && outputs.isEmpty()
 }
 
-/** One card per step, each answered by the tester. Fails if any step fails; unanswered steps can be left for later. */
+/** One step at a time: earlier answers stay listed, the current step gets three large answers. Unanswered steps can be left for later. */
 @Composable
 fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Step>) {
     val english = LocalContext.current.englishContext()
@@ -124,58 +150,67 @@ fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Ste
     val draft = remember { store.loadGuidedDraft(testId) }
     val answers = remember { mutableStateMapOf<Int, StepAnswer>().apply { putAll(draft.answers.filterKeys { it in steps.indices }) } }
     val outputs = remember { mutableStateMapOf<Int, String>().apply { putAll(draft.outputs.filterKeys { it in steps.indices }) } }
+    var current by rememberSaveable(testId) { mutableIntStateOf(steps.indices.firstOrNull { it !in answers } ?: 0) }
     val coroutines = rememberCoroutineScope()
     fun persist() = store.saveGuidedDraft(testId, GuidedDraft(answers.toMap(), outputs.toMap()))
+    val step = steps[current]
+    // Earlier answers and the intro can push the current step off screen on a resumed test.
+    val currentStep = remember { BringIntoViewRequester() }
+    LaunchedEffect(current) { if (current > 0) currentStep.bringIntoView() }
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Instructions(intro.resolve())
-        steps.forEachIndexed { index, step ->
+        if (current > 0) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            steps.take(current).forEachIndexed { index, done ->
+                answers[index]?.let { AnswerLine(index + 1, StepLine(it.state, done.text.resolve()), compact = true) }
+            }
+        }
+        Column(Modifier.bringIntoViewRequester(currentStep), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${index + 1}. ${step.text.resolve()}", style = MaterialTheme.typography.bodyMedium)
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        stringResource(R.string.guided_step_of, current + 1, steps.size).uppercase(),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(step.text.resolve(), style = MaterialTheme.typography.titleLarge)
                     step.shortcut?.let { ShortcutButton(it) }
                     step.action?.let { action ->
                         OutlinedButton(onClick = {
+                            val index = current
                             coroutines.launch {
                                 outputs[index] = runCatching { action.run(scope) }.getOrElse { it.message.orEmpty() }
                                 persist()
                             }
                         }) { Text(action.label.resolve()) }
                     }
-                    outputs[index]?.let { Mono(it) }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StepAnswer.entries.forEach { answer ->
-                            FilterChip(
-                                selected = answers[index] == answer,
-                                onClick = {
-                                    if (answers[index] == answer) answers.remove(index) else answers[index] = answer
-                                    persist()
-                                },
-                                label = { Text(stringResource(answer.label)) },
-                            )
-                        }
-                    }
+                    outputs[current]?.let { Mono(it) }
                 }
             }
-        }
-        val unanswered = steps.size - answers.size
-        if (unanswered > 0 && answers.isNotEmpty()) {
-            Text(pluralStringResource(R.plurals.guided_steps_left_for_later, unanswered, unanswered), style = MaterialTheme.typography.bodySmall)
-        }
-        Button(
-            onClick = { scope.finish(summarize(english, steps, answers, outputs)) },
-            enabled = answers.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.save_result)) }
-        if (answers.isNotEmpty() || outputs.isNotEmpty()) {
-            OutlinedButton(
-                onClick = {
-                    answers.clear()
-                    outputs.clear()
+            StepAnswer.entries.forEach { answer ->
+                val content: @Composable RowScope.() -> Unit = {
+                    Icon(answer.icon, null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(answer.label), modifier = Modifier.weight(1f))
+                }
+                val onClick: () -> Unit = {
+                    answers[current] = answer
                     persist()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.guided_clear_answers)) }
+                    if (current < steps.lastIndex) current++ else scope.finish(summarize(english, steps, answers, outputs))
+                }
+                val modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                if (answer == StepAnswer.PASS) Button(onClick = onClick, modifier = modifier, shape = MaterialTheme.shapes.large, content = content)
+                else OutlinedButton(
+                    onClick = onClick, modifier = modifier, shape = MaterialTheme.shapes.large, content = content,
+                    colors = if (answers[current] == answer) ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer) else ButtonDefaults.outlinedButtonColors(),
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { current-- }, enabled = current > 0) { Text(stringResource(R.string.guided_previous_step)) }
+            Spacer(Modifier.weight(1f))
+            if (answers.isNotEmpty() && answers.size < steps.size) {
+                TextButton(onClick = { scope.finish(summarize(english, steps, answers, outputs)) }) { Text(stringResource(R.string.guided_finish_later)) }
+            }
         }
     }
 }

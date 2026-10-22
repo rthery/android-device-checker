@@ -10,11 +10,6 @@
     <string name="no">No</string>
     <string name="grant_permission">Grant permission</string>
     <string name="save_result">Save result</string>
-    <plurals name="guided_steps_left_for_later">
-        <item quantity="one">%1$d step not answered yet. You can save now and finish it later, your answers are kept.</item>
-        <item quantity="other">%1$d steps not answered yet. You can save now and finish them later, your answers are kept.</item>
-    </plurals>
-    <string name="guided_clear_answers">Clear answers</string>
     <string name="bt_codecs_intro">Connect a Bluetooth headset and wear it. The test switches it to each codec it shares with the phone and plays two short tones on each. Listen for clicks, dropouts or distortion.</string>
     <string name="bt_codecs_start">Switch through codecs</string>
     <string name="bt_codecs_running">Switching codecs and playing tones…</string>

@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
+import io.github.rthery.devicechecker.data.TestKind
 import io.github.rthery.devicechecker.R
 import io.github.rthery.devicechecker.pack.ui.PacksScreen
 import io.github.rthery.devicechecker.pack.ui.shapesFor
@@ -61,23 +62,34 @@ fun App(viewModel: MainViewModel) {
     val colors = system.withHints(hints, dark)
     var tab by rememberSaveable { mutableStateOf(Tab.TESTS) }
     var pushed by rememberSaveable { mutableStateOf(Pushed.NONE) }
-    var activeTest by rememberSaveable { mutableStateOf<String?>(null) }
+    var runQueue by rememberSaveable { mutableStateOf<List<String>?>(null) }
+    var sheetRequest by rememberSaveable { mutableStateOf<String?>(null) }
+    var runStart by rememberSaveable { mutableStateOf<String?>(null) }
+    fun startRun(queue: List<String>, start: String) {
+        runQueue = queue
+        runStart = start
+    }
     val deepLink by viewModel.deepLink.collectAsStateWithLifecycle()
     LaunchedEffect(deepLink) {
         val link = deepLink ?: return@LaunchedEffect
         link.tab?.let { name -> Tab.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { tab = it } }
-        link.test?.let { activeTest = it }
+        link.test?.let { id ->
+            val test = viewModel.catalog.value.byId[id]
+            if (test != null && test.kind != TestKind.AUTO) startRun(listOf(id), id) else if (test != null) { tab = Tab.TESTS; sheetRequest = id }
+        }
         viewModel.consumeDeepLink()
     }
     val testsListState = rememberLazyListState()
     val tabStates = rememberSaveableStateHolder()
 
     MaterialTheme(colorScheme = colors, shapes = shapesFor(hints), typography = Typography().withHints(hints)) {
-        val test = activeTest
+        val queue = runQueue
+        val start = runStart
         when {
-            test != null -> {
-                BackHandler { activeTest = null }
-                TestRunScreen(viewModel, test, onDone = { activeTest = null })
+            queue != null && start != null -> {
+                val exit = { runQueue = null; runStart = null }
+                BackHandler(onBack = exit)
+                GuidedRunScreen(viewModel, queue, start, onExit = exit)
             }
             pushed == Pushed.PROFILE -> {
                 BackHandler { pushed = Pushed.NONE }
@@ -124,7 +136,9 @@ fun App(viewModel: MainViewModel) {
                             TestsTab(
                                 viewModel,
                                 testsListState,
-                                onOpenTest = { activeTest = it },
+                                onStartRun = ::startRun,
+                                sheetRequest = sheetRequest,
+                                onSheetShown = { sheetRequest = null },
                                 onOpenDevice = { tab = Tab.DEVICE },
                                 modifier = content,
                             )

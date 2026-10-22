@@ -8,7 +8,6 @@
     <string name="screen_tab_device">Device</string>
 
     <string name="screen_device_title">Device</string>
-    <string name="screen_device_entry">%1$s: %2$s</string>
     <string name="screen_device_stock_profile">Stock profile</string>
     <string name="screen_device_edit">Edit</string>
     <string name="screen_device_stock_profile_hint">What the stock ROM supports. Tests compare this build with it.</string>
@@ -32,11 +31,9 @@
     <string name="screen_profile_row_wifi_mac">Wi-Fi MAC</string>
     <string name="screen_profile_row_bluetooth_mac">Bluetooth MAC</string>
 
-    <string name="screen_shizuku_connected">Shizuku connected</string>
-    <string name="screen_shizuku_optional">Shizuku (optional)</string>
-    <string name="screen_shizuku_not_running">Not running. Tests that need shell access show as Check this, and the crash watcher is off.</string>
+    <string name="screen_shizuku_not_running">Tests that need shell access read less and show as To check, and the crash watcher is off.</string>
     <string name="screen_shizuku_unsupported">This Shizuku version is too old. Update it.</string>
-    <string name="screen_shizuku_permission_needed">Running, permission not granted yet.</string>
+    <string name="screen_shizuku_permission_needed">Shizuku is running, but this app is not allowed to use it yet.</string>
     <string name="screen_shizuku_connecting">Connecting to the shell service…</string>
     <string name="screen_shizuku_ready">Shell-level reads and crash watching are on.</string>
     <string name="screen_shizuku_retry">Retry</string>
@@ -91,23 +88,12 @@
     <string name="screen_about_androidx">AndroidX, Jetpack Compose and kotlinx.serialization (Apache 2.0).</string>
 
     <string name="screen_report_title">Report</string>
-    <plurals name="screen_report_count">
-        <item quantity="one">%1$d test on the phone, saved after every test and verdict</item>
-        <item quantity="other">%1$d tests on the phone, saved after every test and verdict</item>
-    </plurals>
     <string name="screen_report_share_subject">Device requirements report</string>
-    <string name="screen_report_share_subject_json">Device requirements report (JSON)</string>
-    <string name="screen_report_share_text">Share as text</string>
-    <string name="screen_report_share_json">Share JSON</string>
     <string name="screen_report_written_to">Also written to %1$s for adb pull.</string>
     <string name="screen_report_history">History</string>
-    <string name="screen_report_history_summary">Requirements: %1$s</string>
-    <string name="screen_report_history_met" tools:ignore="PluralsCandidate">%1$d met</string>
-    <string name="screen_report_history_failed" tools:ignore="PluralsCandidate">%1$d failed</string>
-    <string name="screen_report_history_to_check">%1$d to check</string>
 
-    <string name="screen_stock_title">Stock baseline</string>
-    <string name="screen_stock_none">No stock capture imported. Import one to compare this ROM with stock.</string>
+    <string name="screen_stock_title">Stock baseline imported</string>
+    <string name="screen_stock_none">Tests that compare this ROM with stock wait for it. On the stock ROM, tap Capture baseline and keep the file off the phone. Then tap Import baseline here.</string>
     <string name="screen_stock_header">%1$s · Android %2$s · %3$s</string>
     <string name="screen_stock_cpu_ranges">%1$d CPU ranges</string>
     <plurals name="screen_stock_sensors">
@@ -119,9 +105,8 @@
         <item quantity="other">%1$d codec formats</item>
     </plurals>
     <string name="screen_stock_basic_only">Basic device profile only</string>
-    <string name="screen_stock_import">Import stock file</string>
-    <string name="screen_stock_capture_hint">On stock ROM, capture a baseline and keep a copy off the phone before changing ROMs.</string>
-    <string name="screen_stock_capture">Capture this ROM</string>
+    <string name="screen_stock_import">Import baseline</string>
+    <string name="screen_stock_capture">Capture baseline</string>
     <string name="screen_stock_checking">Checking %1$s (%2$d/%3$d)</string>
     <string name="screen_stock_reading">Reading stock data…</string>
 
@@ -167,4 +152,26 @@
     <string name="screen_stock_transfer_failed">Stock transfer failed</string>
     <string name="screen_stock_imported">Stock capture imported. Comparisons updated.</string>
     <string name="screen_stock_saved">Stock capture saved. Import it on the ROM you want to test.</string>
+    <string name="screen_stock_none_title">No stock baseline</string>
+    <string name="screen_device_conditions">Test conditions</string>
+    <string name="screen_device_conditions_hint">These change what the tests can read. Each report records them.</string>
+    <string name="screen_device_this_build">This build</string>
+    <string name="screen_adb_root_on">adb root is on</string>
+    <string name="screen_adb_root_on_hint">Results can differ from a user\'s phone. Play Integrity returns no device verdict while adbd runs as root.</string>
+    <string name="screen_adb_root_off">adb root is off</string>
+    <string name="screen_adb_root_off_hint">Same as a user\'s phone.</string>
+    <string name="screen_copy_command">Copy the command</string>
+    <string name="screen_shizuku_shell_title">Shizuku on, as shell</string>
+    <string name="screen_shizuku_root_title">Shizuku on, as root</string>
+    <string name="screen_shizuku_root_hint">Some reads see more than they would on a user\'s phone. Start Shizuku through adb without root for results that match.</string>
+    <string name="screen_shizuku_permission_title">Shizuku needs permission</string>
+    <string name="screen_shizuku_off_title">Shizuku off</string>
+    <string name="screen_report_share_title">Share the current results</string>
+    <string name="screen_report_share_hint">Saved after every result. Pick the format when you share.</string>
+    <string name="screen_report_share">Share report</string>
+    <string name="screen_report_share_as">Share report as</string>
+    <string name="screen_report_format_html">HTML page</string>
+    <string name="screen_report_format_markdown">Markdown</string>
+    <string name="screen_report_format_json">JSON</string>
+    <string name="screen_report_html_failed">Could not write the HTML report. Check that storage is available.</string>
 </resources>

@@ -60,6 +60,13 @@ fun TestState.colors(): StateColors {
     }
 }
 
+/** Amber container for notices that need action but are not failures. */
+@Composable
+fun warnContainer(): Color = if (isSystemInDarkTheme()) Color(0xFF4D3800) else Color(0xFFF5E1B8)
+
+@Composable
+fun onWarnContainer(): Color = if (isSystemInDarkTheme()) Color(0xFFF5E1B8) else Color(0xFF2A1C00)
+
 /** Shape and color both carry the state, so it reads without color too. */
 @Composable
 fun StateDot(state: TestState, modifier: Modifier = Modifier) {

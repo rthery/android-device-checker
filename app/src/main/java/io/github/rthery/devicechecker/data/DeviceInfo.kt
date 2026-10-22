@@ -5,7 +5,8 @@ import android.os.Build
 import io.github.rthery.devicechecker.catalog.Rom
 import io.github.rthery.devicechecker.shell.AppShell
 
-data class DeviceInfo(val entries: List<Pair<String, String>>, val rom: Rom? = null) {
+/** [version] is the ROM's own version string (ro.modversion), when the app can read it. */
+data class DeviceInfo(val entries: List<Pair<String, String>>, val rom: Rom? = null, val version: String? = null) {
     val lineageBased: Boolean get() = rom != null
 
     companion object {
@@ -24,12 +25,14 @@ data class DeviceInfo(val entries: List<Pair<String, String>>, val rom: Rom? = n
         suspend fun read(context: Context): DeviceInfo {
             suspend fun prop(name: String) = AppShell.exec("getprop $name").output.ifBlank { "unknown" }
             val rom = detectRom(context)
+            val version = listOf("ro.modversion", "ro.lineage.version").map { prop(it) }.firstOrNull { it != "unknown" }
             return DeviceInfo(
                 rom = rom,
+                version = version,
                 entries = listOf(
                     "Device" to "${Build.MANUFACTURER} ${Build.MODEL} (${prop("ro.lineage.device").takeIf { it != "unknown" } ?: Build.DEVICE})",
                     "Build" to Build.DISPLAY,
-                    "ROM family" to (rom?.let { family -> prop("ro.lineage.version").takeIf { it != "unknown" }?.let { "${family.label} ($it)" } ?: family.label } ?: "not LineageOS-based"),
+                    "ROM family" to (rom?.let { family -> version?.let { "${family.label} ($it)" } ?: family.label } ?: "not LineageOS-based"),
                     "Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
                     "Security patch" to Build.VERSION.SECURITY_PATCH,
                     "Kernel" to System.getProperty("os.version").orEmpty(),

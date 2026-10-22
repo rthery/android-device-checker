@@ -2,7 +2,7 @@
 <resources>
     <string name="tests_state_pass">Passed</string>
     <string name="tests_state_fail">Failed</string>
-    <string name="tests_state_warn">Check this</string>
+    <string name="tests_state_warn">To check</string>
     <string name="tests_state_needs">Needs you</string>
     <string name="tests_state_not_run">Not run</string>
     <string name="tests_state_na">N/A</string>
@@ -37,61 +37,10 @@
     <string name="tests_category_updates">Updates and recovery</string>
     <string name="tests_category_off_device">Not testable on the phone</string>
 
-    <string name="tests_bundle_build">Build identity and patches</string>
-    <string name="tests_bundle_selinux">SELinux</string>
-    <string name="tests_bundle_binder">Binder</string>
-    <string name="tests_bundle_encryption">Encryption and keystore</string>
-    <string name="tests_bundle_verity">Verified boot</string>
-    <string name="tests_bundle_eos_defaults">/e/OS network defaults and integrity</string>
-    <string name="tests_bundle_cpu">CPU frequencies and governors</string>
-    <string name="tests_bundle_cameras">Cameras</string>
-    <string name="tests_bundle_codecs">Hardware codecs</string>
-    <string name="tests_bundle_playback">Audio playback</string>
-    <string name="tests_bundle_microphones">Microphones and voice processing</string>
-    <string name="tests_bundle_calls">Calls, messages and SIMs</string>
-    <string name="tests_bundle_wifi">Wi-Fi</string>
-    <string name="tests_bundle_bluetooth">Bluetooth</string>
-    <string name="tests_bundle_gps">GPS</string>
-    <string name="tests_bundle_usb">USB transfer, tethering and OTG</string>
-    <string name="tests_bundle_display">Display</string>
-    <string name="tests_bundle_fingerprint">Fingerprint</string>
-    <string name="tests_bundle_ir">IR blaster</string>
-    <string name="tests_bundle_storage">SD card</string>
-    <string name="tests_bundle_sensors">Sensors</string>
-    <string name="tests_bundle_battery">Battery and charging</string>
-    <string name="tests_bundle_eos_apps">/e/OS apps and microG</string>
-    <string name="tests_bundle_stability">Stability and battery</string>
-    <string name="tests_bundle_updates">Updates and recovery</string>
-    <string name="tests_bundle_tree">Device tree</string>
-    <string name="tests_bundle_kernel_source">Kernel source and drivers</string>
-    <string name="tests_bundle_blobs">Proprietary blobs</string>
-    <string name="tests_bundle_vendor">Vendor image</string>
-    <string name="tests_bundle_documentation">Device documentation</string>
-    <string name="tests_bundle_project">Project practices and licensing</string>
 
-    <plurals name="tests_summary_running">
-        <item quantity="one">%1$d running</item>
-        <item quantity="other">%1$d running</item>
-    </plurals>
-    <plurals name="tests_summary_waiting">
-        <item quantity="one">%1$d waiting</item>
-        <item quantity="other">%1$d waiting</item>
-    </plurals>
     <plurals name="tests_summary_failed">
         <item quantity="one">%1$d failed</item>
         <item quantity="other">%1$d failed</item>
-    </plurals>
-    <plurals name="tests_summary_to_check">
-        <item quantity="one">%1$d to check</item>
-        <item quantity="other">%1$d to check</item>
-    </plurals>
-    <plurals name="tests_summary_need_you">
-        <item quantity="one">%1$d need you</item>
-        <item quantity="other">%1$d need you</item>
-    </plurals>
-    <plurals name="tests_summary_not_run">
-        <item quantity="one">%1$d not run</item>
-        <item quantity="other">%1$d not run</item>
     </plurals>
     <plurals name="tests_summary_passed">
         <item quantity="one">%1$d passed</item>
@@ -108,31 +57,12 @@
 
     <string name="tests_title">Tests</string>
     <string name="tests_device_line">%1$s · Android %2$s · %3$s</string>
-    <string name="tests_device_line_rom">%1$s · Android %2$s · %3$s · %4$s</string>
+    <string name="tests_device_line_rom">%1$s · %2$s · %3$s</string>
     <string name="tests_shizuku_on">Shizuku on</string>
     <string name="tests_shizuku_off">Shizuku off</string>
     <string name="tests_shizuku_root">Shizuku (root)</string>
     <string name="tests_adb_root">adb root</string>
-    <string name="tests_filter_all">All</string>
-    <string name="tests_filter_needs">Need you</string>
-    <string name="tests_filter_failed">Failed</string>
-    <string name="tests_filter_auto">Automatic</string>
-    <plurals name="tests_run_automatic">
-        <item quantity="one">Run %1$d automatic test</item>
-        <item quantity="other">Run %1$d automatic tests</item>
-    </plurals>
-    <plurals name="tests_run_stopped">
-        <item quantity="one">Run stopped · %1$d automatic test failed</item>
-        <item quantity="other">Run stopped · %1$d automatic tests failed</item>
-    </plurals>
-    <plurals name="tests_run_finished">
-        <item quantity="one">Run finished · %1$d automatic test failed</item>
-        <item quantity="other">Run finished · %1$d automatic tests failed</item>
-    </plurals>
-    <string name="tests_show_failed">Show failed</string>
-    <string name="tests_ok">OK</string>
     <string name="tests_empty">No tests match these filters.</string>
-    <string name="tests_back_to">Back to %1$s</string>
     <string name="tests_all_priorities">All priorities</string>
     <string name="tests_priority_filter_description">Filter by requirement priority</string>
     <string name="tests_selected">Selected</string>
@@ -142,36 +72,7 @@
     <string name="tests_expand">Expand</string>
     <string name="tests_from_source">From %1$s</string>
 
-    <string name="tests_action_run">Run</string>
-    <string name="tests_action_mark">Mark</string>
-    <string name="tests_action_steps">Steps</string>
-    <string name="tests_action_start">Start</string>
-    <string name="tests_action_continue">Continue</string>
-    <string name="tests_action_open">Open</string>
-    <string name="tests_hands_on_nfc">Scan a tag</string>
-    <string name="tests_hands_on_listen">Listen</string>
-    <string name="tests_hands_on_record_audio">Record audio</string>
-    <string name="tests_hands_on_photos">Take photos</string>
-    <string name="tests_hands_on_video">Record video</string>
-    <string name="tests_hands_on_motion">Move phone</string>
-    <string name="tests_hands_on_fingerprint">Try fingerprint</string>
-    <string name="tests_hands_on_gps">Find GPS fix</string>
-    <string name="tests_hands_on_bluetooth">Scan devices</string>
-    <string name="tests_hands_on_bluetooth_codecs">Switch codecs</string>
-    <string name="tests_hands_on_ir">Try remote</string>
-    <string name="tests_hands_on_follow_steps">Follow steps</string>
-    <string name="tests_hands_on_start">Start test</string>
 
-    <string name="tests_bundle_open">Open %1$s</string>
-    <plurals name="tests_bundle_count">
-        <item quantity="one">%1$d check · %2$s</item>
-        <item quantity="other">%1$d checks · %2$s</item>
-    </plurals>
-    <string name="tests_bundle_updated">Results updated · %1$s</string>
-    <plurals name="tests_bundle_run_checks">
-        <item quantity="one">Run %1$d check</item>
-        <item quantity="other">Run %1$d checks</item>
-    </plurals>
 
     <string name="tests_detail_back">Back to test details</string>
     <string name="tests_detail_requirements">Requirements it covers</string>
@@ -184,28 +85,93 @@
     <string name="tests_detail_what_app_does">What the app does</string>
     <string name="tests_detail_running">Running %1$s</string>
     <string name="tests_detail_please_wait">Checking the device. Please wait.</string>
-    <string name="tests_detail_done">Done · %1$s</string>
-    <string name="tests_detail_last_result">Last result · %1$s</string>
     <plurals name="tests_detail_raw_output">
         <item quantity="one">Show raw output (%1$d character)</item>
         <item quantity="other">Show raw output (%1$d characters)</item>
     </plurals>
-    <string name="tests_detail_by_tester">Set by the tester</string>
-    <string name="tests_detail_through_shizuku">Read through Shizuku</string>
     <string name="tests_detail_next_step">Next step</string>
     <string name="tests_detail_compare">Compare the result with stock, then record your verdict below.</string>
     <string name="tests_detail_nfc_hint">Hold a tag or card against the back of the phone.</string>
     <string name="tests_detail_running_ellipsis">Running…</string>
     <string name="tests_detail_run_check">Run check</string>
     <string name="tests_detail_run_again">Run again</string>
-    <string name="tests_detail_mark_passed">Mark passed</string>
-    <string name="tests_detail_mark_failed">Mark failed</string>
     <string name="tests_detail_not_applicable">Not applicable</string>
     <string name="tests_detail_clear_verdict">Clear my verdict</string>
 
-    <string name="tests_run_result_saved">Result saved: %1$s</string>
-    <string name="tests_run_back">Back</string>
     <string name="tests_run_crash_watcher_on">Crash watcher on: any process crash during this test fails it.</string>
     <string name="tests_run_crash_watcher_off">Crash watcher off: connect Shizuku to catch HAL and system crashes during this test.</string>
     <string name="tests_run_last_result">Last result: %1$s</string>
+    <string name="tests_device_line_version">%1$s · %2$s %3$s · %4$s</string>
+    <plurals name="tests_done_of">
+        <item quantity="one">%1$d of %2$d done</item>
+        <item quantity="other">%1$d of %2$d done</item>
+    </plurals>
+    <string name="tests_tile_failed">Failed</string>
+    <string name="tests_tile_to_check">To check</string>
+    <string name="tests_tile_need_you">Need you</string>
+    <string name="tests_tile_passed">Passed</string>
+    <string name="tests_showing">Showing</string>
+    <string name="tests_clear_filter">Clear filter</string>
+    <string name="tests_lane_you">Need you · %1$d</string>
+    <string name="tests_lane_auto">Automatic · %1$d</string>
+    <string name="tests_lane_auto_running">Automatic · %1$d/%2$d</string>
+    <string name="tests_run_start">Start</string>
+    <string name="tests_run_continue">Continue</string>
+    <string name="tests_run_all_again">Run all again</string>
+    <string name="tests_you_empty">Nothing waits for you. Your results are under Done.</string>
+    <string name="tests_start_group">Start group</string>
+    <string name="tests_done_by_you">Done by you (%1$d)</string>
+    <string name="tests_done">Done (%1$d)</string>
+    <string name="tests_section_failed">Failed (%1$d)</string>
+    <string name="tests_section_to_check">To check (%1$d)</string>
+    <string name="tests_no_baseline_title">No stock baseline</string>
+    <plurals name="tests_no_baseline_body">
+        <item quantity="one">%1$d test compares this ROM with stock and cannot judge itself without it.</item>
+        <item quantity="other">%1$d tests compare this ROM with stock and cannot judge themselves without it.</item>
+    </plurals>
+    <plurals name="tests_steps">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
+    <plurals name="tests_steps_answered">
+        <item quantity="one">%1$d of %2$d step</item>
+        <item quantity="other">%1$d of %2$d steps</item>
+    </plurals>
+    <string name="tests_your_verdict">Your verdict</string>
+    <string name="tests_badge_started">Started</string>
+    <string name="tests_badge_redo">To redo</string>
+    <string name="tests_badge_waiting">Waiting for your answer</string>
+    <string name="tests_run_again_named">Run %1$s again</string>
+    <string name="tests_detail_marked_at">Marked by you · %1$s</string>
+    <string name="tests_detail_answered_at">Answered by you · %1$s</string>
+    <string name="tests_detail_read_shizuku_at">%1$s · read through Shizuku</string>
+    <string name="tests_detail_start">Start test</string>
+    <string name="tests_detail_redo">Redo this test</string>
+    <string name="tests_detail_mark_as">Mark as…</string>
+    <string name="tests_detail_clear_answers">Clear my answers</string>
+    <string name="tests_detail_mark_note">Your verdict replaces the app\'s result in reports, marked as set by you.</string>
+    <string name="tests_detail_your_answers">Your answers</string>
+    <string name="tests_detail_found">What the app found</string>
+    <string name="tests_detail_found_now">What the app found just now</string>
+    <string name="tests_detail_not_answered">Not answered</string>
+    <string name="guided_step_of">Step %1$d of %2$d</string>
+    <string name="guided_previous_step">Previous step</string>
+    <string name="guided_finish_later">Save and finish later</string>
+    <string name="guided_run_title">Guided run</string>
+    <string name="guided_run_position">Test %1$d of %2$d · answers saved as you go</string>
+    <string name="guided_run_redo">Redoing a finished test</string>
+    <string name="guided_run_close">Close the guided run</string>
+    <string name="guided_skip_test">Skip this test</string>
+    <string name="guided_next_category">Next category</string>
+    <string name="guided_category_hint">You can skip the whole category and come back to it later.</string>
+    <string name="guided_start">Start</string>
+    <string name="guided_skip_category">Skip category</string>
+    <string name="guided_requirement_met">Requirement met</string>
+    <string name="guided_requirement_not_met">Not met</string>
+    <string name="guided_saved">Saved · %1$s</string>
+    <string name="guided_change_answers">Change my answers</string>
+    <string name="guided_next">Next: %1$s</string>
+    <string name="guided_next_new_category">Next category: %1$s</string>
+    <string name="guided_back_to_tests">Back to tests</string>
+    <string name="tests_section_not_run">Not run yet (%1$d)</string>
 </resources>

@@ -10,7 +10,8 @@ fun decodeStockCapture(text: String, codename: String): StockSnapshot {
     return snapshot
 }
 
-private val stockComparisonIds = setOf(
+/** Automatic tests that compare this ROM with the imported stock baseline. */
+val stockComparisonIds = setOf(
     "kernel.clocks", "sensors.list", "codecs.hardware", "audio.devices", "camera.list",
     "display.resolution", "display.density", "display.hdr", "wifi.mac", "bluetooth.mac",
 )

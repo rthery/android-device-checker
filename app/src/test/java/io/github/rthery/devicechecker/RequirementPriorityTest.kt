@@ -4,8 +4,6 @@ import io.github.rthery.devicechecker.catalog.Level
 import io.github.rthery.devicechecker.data.RequirementPriority
 import io.github.rthery.devicechecker.data.TestCatalog
 import io.github.rthery.devicechecker.data.TestKind
-import io.github.rthery.devicechecker.data.bundleTests
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,13 +39,9 @@ class RequirementPriorityTest {
     }
 
     @Test
-    fun filteredBundleMembersAndRunTargetsRespectPriority() {
+    fun filteredTestsAndRunTargetsRespectPriority() {
         val selected = TestCatalog.builtIn.all.filter(RequirementPriority.RECOMMENDED::accepts)
-        val groups = bundleTests(selected)
-        val members = groups.flatMap { it.tests }
-        assertEquals(selected.map { it.id }.toSet(), members.map { it.id }.toSet())
-        assertTrue(members.all(RequirementPriority.RECOMMENDED::accepts))
-        assertTrue(members.none { it.level == Level.MUST || it.level == Level.MUST_NOT })
+        assertTrue(selected.none { it.level == Level.MUST || it.level == Level.MUST_NOT })
         val automatic = selected.filter { it.kind == TestKind.AUTO }
         assertTrue(automatic.isNotEmpty())
         assertTrue(automatic.all(RequirementPriority.RECOMMENDED::accepts))

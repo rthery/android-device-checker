@@ -1,6 +1,5 @@
 package io.github.rthery.devicechecker.ui
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,20 +41,4 @@ fun TestActionButton(label: String, handsOn: Boolean, onClick: () -> Unit, modif
         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primary),
         content = content,
     )
-}
-
-@StringRes
-fun handsOnLabel(id: String, manual: Boolean = false): Int = when (id) {
-    "nfc.tag" -> R.string.tests_hands_on_nfc
-    "audio.output" -> R.string.tests_hands_on_listen
-    "audio.input" -> R.string.tests_hands_on_record_audio
-    "camera.capture" -> R.string.tests_hands_on_photos
-    "video.record" -> R.string.tests_hands_on_video
-    "sensors.motion" -> R.string.tests_hands_on_motion
-    "fingerprint.auth" -> R.string.tests_hands_on_fingerprint
-    "gnss.fix" -> R.string.tests_hands_on_gps
-    "bluetooth.scan" -> R.string.tests_hands_on_bluetooth
-    "bluetooth.codecs.headset" -> R.string.tests_hands_on_bluetooth_codecs
-    "ir.transmit" -> R.string.tests_hands_on_ir
-    else -> if (manual) R.string.tests_hands_on_follow_steps else R.string.tests_hands_on_start
 }

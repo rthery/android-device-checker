@@ -40,6 +40,8 @@ class InteractiveTest(
     /** A step list the tester works through, as opposed to a test the app drives. */
     val manual: Boolean = false,
     val source: String? = null,
+    /** Number of answered steps for step-list tests, null for tests with their own screen. */
+    val steps: Int? = null,
     val content: @Composable (TestScope) -> Unit,
 )
 

@@ -44,10 +44,16 @@ data class RunProgress(val done: Int, val total: Int, val current: String, val c
 
 data class RunSummary(val ran: Int, val failed: Int, val stopped: Boolean)
 
-data class HistoryEntry(val file: String, val generatedAt: String, val summary: Map<String, Int>)
+/** [build] is the short ROM version the report was written on; [rooted] means adbd ran as root then. */
+data class HistoryEntry(val file: String, val generatedAt: String, val summary: Map<String, Int>, val build: String? = null, val rooted: Boolean = false)
 
 @kotlinx.serialization.Serializable
-private data class HistoryHeader(val generatedAt: String = "", val summary: Map<String, Int> = emptyMap())
+private data class HistoryHeader(
+    val generatedAt: String = "",
+    val summary: Map<String, Int> = emptyMap(),
+    val device: Map<String, String> = emptyMap(),
+    val conditions: RunConditions? = null,
+)
 
 /** Single source of truth shared by the UI and the adb receiver. */
 class Repository private constructor(context: Context) {
@@ -294,7 +300,7 @@ class Repository private constructor(context: Context) {
         files.mapNotNull { file ->
             runCatching {
                 val report = historyJson.decodeFromString(HistoryHeader.serializer(), file.readText())
-                HistoryEntry(file.name, report.generatedAt, report.summary)
+                HistoryEntry(file.name, report.generatedAt, report.summary, report.device["ROM family"]?.let(::romVersionOf), report.conditions?.adbRoot == true)
             }.getOrNull()
         }
     }
@@ -350,6 +356,7 @@ class Repository private constructor(context: Context) {
         val json = report.toJson()
         File(dir, "report.json").writeText(json)
         File(dir, "report.md").writeText(report.toMarkdown())
+        File(dir, "report.html").writeText(report.toHtml())
         File(dir, "catalog.json").writeText(buildCatalog(_catalog.value.all, dir.absolutePath).toJson())
         if (snapshot) {
             val history = File(dir, "history").apply { mkdirs() }

@@ -19,7 +19,7 @@ private fun appAction(@StringRes label: Int, command: String) = StepAction(label
 }
 
 private fun guided(id: String, title: String, summary: String, @StringRes intro: Int, vararg steps: Step) =
-    InteractiveTest(id, title, summary, manual = true) { scope -> GuidedSteps(scope, id, UiText.Res(intro), steps.toList()) }
+    InteractiveTest(id, title, summary, manual = true, steps = steps.size) { scope -> GuidedSteps(scope, id, UiText.Res(intro), steps.toList()) }
 
 /** Asks telephony whether each known number counts as an emergency number; nothing is dialed. */
 private val emergencyNumbersAction = StepAction(R.string.guided_action_check_emergency_numbers) {

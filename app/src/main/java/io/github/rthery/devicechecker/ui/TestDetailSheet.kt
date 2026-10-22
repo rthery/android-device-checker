@@ -18,9 +18,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +40,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.rthery.devicechecker.MainViewModel
@@ -46,12 +51,23 @@ import io.github.rthery.devicechecker.data.TestKind
 import io.github.rthery.devicechecker.data.TestState
 import io.github.rthery.devicechecker.data.UnifiedTest
 import io.github.rthery.devicechecker.data.Verdict
+import io.github.rthery.devicechecker.data.lineFor
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 
 private val WHEN_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, HH:mm").withZone(ZoneId.systemDefault())
+private const val PREVIEW_LINES = 6
+
+/** One answered step as written by the step list summary: "Works: Switch USB to file transfer." */
+internal data class StepLine(val answer: TestState, val text: String)
+
+private val ANSWER_STATES = mapOf("Works" to TestState.PASS, "Broken" to TestState.FAIL, "Can't test" to TestState.NA, "Not answered yet" to TestState.NOT_RUN)
+
+internal fun parseStepLines(details: String): List<StepLine> = details.lines().filter { it.isNotBlank() && !it.startsWith(" ") }.mapNotNull { line ->
+    ANSWER_STATES.entries.firstOrNull { line.startsWith(it.key + ": ") }?.let { StepLine(it.value, line.removePrefix(it.key + ": ")) }
+}
 
 @Composable
 internal fun TestDetailContent(
@@ -61,15 +77,17 @@ internal fun TestDetailContent(
     result: CheckResult?,
     runActive: Boolean,
     onDismiss: () -> Unit,
-    onOpenTest: (String) -> Unit,
+    onRedo: () -> Unit,
 ) {
     val catalog = viewModel.catalog.collectAsStateWithLifecycle().value
     val waiver = catalog.waiverFor(test)
+    val handsOn = test.kind != TestKind.AUTO && !test.isRequirementOnly
     val initialTimestamp by rememberSaveable(test.id) { mutableStateOf(result?.timestamp) }
     var requested by rememberSaveable(test.id) { mutableStateOf(false) }
     var runTimestamp by rememberSaveable(test.id) { mutableStateOf(result?.timestamp) }
     var showingProgress by rememberSaveable(test.id) { mutableStateOf(false) }
     var showingRawOutput by rememberSaveable(test.id) { mutableStateOf(false) }
+    var markOpen by rememberSaveable(test.id) { mutableStateOf(false) }
     val completed = result != null && result.timestamp != initialTimestamp
     LaunchedEffect(requested, state, result?.timestamp) {
         val active = state == TestState.RUNNING || state == TestState.QUEUED
@@ -81,26 +99,17 @@ internal fun TestDetailContent(
         }
     }
     val detailsListState = rememberLazyListState()
-    val outputListState = rememberLazyListState()
     BackHandler(enabled = showingRawOutput) { showingRawOutput = false }
     if (showingRawOutput && result != null) {
-        val chunks = remember(result.details) { result.details.chunked(2000) }
-        Column {
-            TextButton(onClick = { showingRawOutput = false }) { Text(stringResource(R.string.tests_detail_back)) }
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp),
-                state = outputListState, contentPadding = PaddingValues(20.dp),
-            ) {
-                itemsIndexed(chunks, key = { index, _ -> index }, contentType = { _, _ -> "raw" }) { _, chunk ->
-                    Text(chunk, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-                }
-            }
-        }
+        RawOutput(result.details) { showingRawOutput = false }
         return
     }
+    val byTester = result?.byTester == true || (test.isRequirementOnly && state != TestState.NOT_RUN)
+    val answers = remember(result?.details) { if (handsOn && !byTester) parseStepLines(result?.details.orEmpty()) else emptyList() }
+
     LazyColumn(
         state = detailsListState,
-        modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -109,10 +118,127 @@ internal fun TestDetailContent(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     val colors = state.colors()
                     Chip(stringResource(state.labelRes), colors.container, colors.content, colors.border)
-                    Chip(stringResource(test.kind.labelRes))
+                    Chip(stringResource(test.kind.labelRes) + " · " + stringResource(test.category.titleRes))
                     LevelPill(test.level, Modifier.align(Alignment.CenterVertically))
                 }
                 Text(test.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                if (result != null || state != TestState.NOT_RUN) {
+                    Text(
+                        lineFor(test, state, result, waiver).resolve(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
+                        color = if (state == TestState.FAIL) state.colors().border else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                result?.let {
+                    val stamp = WHEN_FORMAT.format(Instant.ofEpochMilli(it.timestamp))
+                    Hint(
+                        when {
+                            it.byTester -> stringResource(R.string.tests_detail_marked_at, stamp)
+                            handsOn -> stringResource(R.string.tests_detail_answered_at, stamp)
+                            it.access == Access.SHIZUKU -> stringResource(R.string.tests_detail_read_shizuku_at, stamp)
+                            else -> stamp
+                        },
+                    )
+                }
+            }
+        }
+
+        item(key = "actions", contentType = "actions") {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                when {
+                    test.kind == TestKind.AUTO -> TestActionButton(
+                        label = stringResource(if (showingProgress) R.string.tests_detail_running_ellipsis else if (result == null) R.string.tests_detail_run_check else R.string.tests_detail_run_again),
+                        handsOn = false,
+                        onClick = {
+                            runTimestamp = result?.timestamp
+                            requested = true
+                            showingProgress = true
+                            viewModel.runOne(test.id)
+                        },
+                        enabled = !runActive && !showingProgress,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    )
+                    handsOn -> TestActionButton(
+                        label = stringResource(if (result == null) R.string.tests_detail_start else R.string.tests_detail_redo),
+                        handsOn = true, onClick = onRedo,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { markOpen = !markOpen }) {
+                        Text(stringResource(R.string.tests_detail_mark_as))
+                        Icon(if (markOpen) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null)
+                    }
+                    if (byTester) TextButton(onClick = { viewModel.markTest(test, Verdict.UNTESTED) }) { Text(stringResource(R.string.tests_detail_clear_verdict)) }
+                    else if (handsOn && result != null) TextButton(onClick = { viewModel.clearAnswers(test); onDismiss() }) { Text(stringResource(R.string.tests_detail_clear_answers)) }
+                }
+                if (markOpen) {
+                    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            listOf(Verdict.PASS to R.string.tests_state_pass, Verdict.FAIL to R.string.tests_state_fail, Verdict.NOT_APPLICABLE to R.string.tests_detail_not_applicable).forEach { (verdict, label) ->
+                                TextButton(
+                                    onClick = { markOpen = false; viewModel.markTest(test, verdict) },
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                    shape = RoundedCornerShape(0.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                ) { Text(stringResource(label), modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurface) }
+                            }
+                            Text(
+                                stringResource(R.string.tests_detail_mark_note), style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showingProgress || state == TestState.RUNNING || state == TestState.QUEUED) {
+            item(key = "progress", contentType = "section") {
+                Section(stringResource(R.string.tests_detail_running, test.title)) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Text(test.how.firstOrNull() ?: stringResource(R.string.tests_detail_please_wait))
+                }
+            }
+        }
+
+        waiver?.let {
+            item(key = "waiver", contentType = "section") {
+                Section(stringResource(R.string.tests_detail_exception)) {
+                    Text(it.reason, style = MaterialTheme.typography.bodyLarge)
+                    it.reference?.let { reference -> Hint(reference) }
+                    test.requirements.firstNotNullOfOrNull { requirement -> catalog.waivedBy(requirement.id) }?.let { pack -> Hint(stringResource(R.string.tests_detail_waived_by, pack)) }
+                }
+            }
+        }
+
+        if (answers.isNotEmpty()) {
+            item(key = "answers", contentType = "section") {
+                Section(stringResource(R.string.tests_detail_your_answers)) {
+                    answers.forEachIndexed { index, line -> AnswerLine(index + 1, line) }
+                }
+            }
+        } else if (result != null && result.details.isNotBlank() && !showingProgress && !result.byTester) {
+            item(key = "found", contentType = "section") {
+                val lines = result.details.lines()
+                Section(stringResource(if (completed) R.string.tests_detail_found_now else R.string.tests_detail_found)) {
+                    Text(
+                        lines.take(PREVIEW_LINES).joinToString("\n"), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(10.dp)).padding(10.dp),
+                    )
+                    if (lines.size > PREVIEW_LINES) TextButton(onClick = { showingRawOutput = true }) {
+                        Text(pluralStringResource(R.plurals.tests_detail_raw_output, result.details.length, result.details.length))
+                    }
+                }
+            }
+        }
+
+        if (state == TestState.NEEDS && !showingProgress && test.kind == TestKind.AUTO) {
+            item(key = "next", contentType = "section") {
+                val related = test.requirements.flatMap { it.testIds }.distinct().filter { it != test.id }.mapNotNull { catalog.interactiveById[it] }
+                Section(stringResource(R.string.tests_detail_next_step)) {
+                    if (related.isEmpty()) Text(stringResource(R.string.tests_detail_compare))
+                    else related.forEach { next -> Text(if (next.id == "nfc.tag") stringResource(R.string.tests_detail_nfc_hint) else next.summary) }
+                }
             }
         }
 
@@ -130,25 +256,12 @@ internal fun TestDetailContent(
             }
         }
 
-        waiver?.let {
-            item(key = "waiver", contentType = "section") {
-                Section(stringResource(R.string.tests_detail_exception)) {
-                    Text(it.reason, style = MaterialTheme.typography.bodyLarge)
-                    it.reference?.let { reference -> Hint(reference) }
-                    test.requirements.firstNotNullOfOrNull { requirement -> catalog.waivedBy(requirement.id) }?.let { pack -> Hint(stringResource(R.string.tests_detail_waived_by, pack)) }
-                }
-            }
-        }
-
         if (test.how.isNotEmpty()) {
             item(key = "how", contentType = "section") {
                 Section(stringResource(if (test.kind == TestKind.OFF_DEVICE || test.isRequirementOnly) R.string.tests_detail_how_to_check else R.string.tests_detail_what_app_does)) {
                     test.how.forEachIndexed { index, step ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                            Box(
-                                Modifier.size(22.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
+                            Box(Modifier.size(22.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
                                 Text("${index + 1}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                             }
                             Text(step, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -157,90 +270,42 @@ internal fun TestDetailContent(
                 }
             }
         }
+    }
+}
 
-        if (showingProgress || state == TestState.RUNNING || state == TestState.QUEUED) {
-            item(key = "progress", contentType = "section") {
-                Section(stringResource(R.string.tests_detail_running, test.title)) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Text(test.how.firstOrNull() ?: stringResource(R.string.tests_detail_please_wait))
-                }
+@Composable
+private fun RawOutput(details: String, onBack: () -> Unit) {
+    val chunks = remember(details) { details.chunked(2000) }
+    Column {
+        TextButton(onClick = onBack) { Text(stringResource(R.string.tests_detail_back)) }
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp), state = rememberLazyListState(), contentPadding = PaddingValues(20.dp)) {
+            itemsIndexed(chunks, key = { index, _ -> index }, contentType = { _, _ -> "raw" }) { _, chunk ->
+                Text(chunk, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
             }
         }
+    }
+}
 
-        if (result != null && !showingProgress) {
-            item(key = "result", contentType = "section") {
-                Section(stringResource(if (completed) R.string.tests_detail_done else R.string.tests_detail_last_result, WHEN_FORMAT.format(Instant.ofEpochMilli(result.timestamp)))) {
-                    Text(result.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    if (result.details.isNotBlank()) {
-                        TextButton(onClick = { showingRawOutput = true }) {
-                            Text(pluralStringResource(R.plurals.tests_detail_raw_output, result.details.length, result.details.length))
-                        }
-                    }
-                    when {
-                        result.byTester -> Hint(stringResource(R.string.tests_detail_by_tester))
-                        result.access == Access.SHIZUKU -> Hint(stringResource(R.string.tests_detail_through_shizuku))
-                    }
-                }
-            }
-        }
-
-        if (state == TestState.NEEDS && !showingProgress && test.kind == TestKind.AUTO) {
-            item(key = "next", contentType = "section") {
-                val related = test.requirements.flatMap { it.testIds }.distinct().filter { it != test.id }.mapNotNull { catalog.interactiveById[it] }
-                Section(stringResource(R.string.tests_detail_next_step)) {
-                    if (related.isEmpty()) {
-                        Text(stringResource(R.string.tests_detail_compare))
-                    } else {
-                        related.forEach { next ->
-                            Text(if (next.id == "nfc.tag") stringResource(R.string.tests_detail_nfc_hint) else next.summary)
-                            TestActionButton(label = stringResource(handsOnLabel(next.id, next.manual)), handsOn = true,
-                                onClick = { onOpenTest(next.id) }, modifier = Modifier.fillMaxWidth())
-                        }
-                    }
-                }
-            }
-        }
-
-        item(key = "actions", contentType = "actions") {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                when {
-                    test.kind == TestKind.AUTO -> TestActionButton(
-                        label = stringResource(if (showingProgress) R.string.tests_detail_running_ellipsis else if (result == null) R.string.tests_detail_run_check else R.string.tests_detail_run_again),
-                        handsOn = false,
-                        onClick = {
-                            runTimestamp = result?.timestamp
-                            requested = true
-                            showingProgress = true
-                            viewModel.runOne(test.id)
-                        },
-                        enabled = !runActive && !showingProgress,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    )
-                    !test.isRequirementOnly -> TestActionButton(
-                        label = stringResource(handsOnLabel(test.id, test.kind == TestKind.MANUAL)),
-                        handsOn = true, onClick = { onOpenTest(test.id) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(Verdict.PASS to R.string.tests_detail_mark_passed, Verdict.FAIL to R.string.tests_detail_mark_failed, Verdict.NOT_APPLICABLE to R.string.tests_detail_not_applicable).forEach { (verdict, label) ->
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.markTest(test, verdict)
-                                onDismiss()
-                            },
-                            modifier = Modifier.weight(1f).heightIn(min = 44.dp),
-                        ) { Text(stringResource(label), style = MaterialTheme.typography.labelMedium, maxLines = 2) }
-                    }
-                }
-                if (result?.byTester == true || (test.isRequirementOnly && state != TestState.NOT_RUN)) {
-                    TextButton(onClick = {
-                        viewModel.markTest(test, Verdict.UNTESTED)
-                        onDismiss()
-                    }) { Text(stringResource(R.string.tests_detail_clear_verdict)) }
-                }
-            }
-        }
+@Composable
+/** [compact] keeps one line per answer, for the steps already behind the current one. */
+internal fun AnswerLine(number: Int, line: StepLine, compact: Boolean = false) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        StateDot(line.answer, Modifier.size(24.dp))
+        Text(
+            "$number. ${line.text}", style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f), maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            stringResource(
+                when (line.answer) {
+                    TestState.PASS -> R.string.step_works
+                    TestState.FAIL -> R.string.step_broken
+                    TestState.NA -> R.string.step_cant_test
+                    else -> R.string.tests_detail_not_answered
+                },
+            ),
+            style = MaterialTheme.typography.labelLarge, color = line.answer.colors().border.takeIf { line.answer == TestState.PASS || line.answer == TestState.FAIL } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

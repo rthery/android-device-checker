@@ -8,6 +8,8 @@ import io.github.rthery.devicechecker.checks.CheckResult
 import io.github.rthery.devicechecker.data.DeviceInfo
 import io.github.rthery.devicechecker.data.ManualVerdict
 import io.github.rthery.devicechecker.data.Repository
+import io.github.rthery.devicechecker.data.Store
+import io.github.rthery.devicechecker.interactive.GuidedDraft
 import io.github.rthery.devicechecker.data.isBulkRun
 import io.github.rthery.devicechecker.data.HistoryEntry
 import io.github.rthery.devicechecker.data.RunProgress
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import io.github.rthery.devicechecker.data.toJson
 import io.github.rthery.devicechecker.data.toMarkdown
+import io.github.rthery.devicechecker.data.toHtml
 import io.github.rthery.devicechecker.profile.DeviceProfile
 import io.github.rthery.devicechecker.shell.AdbRoot
 import io.github.rthery.devicechecker.shell.ShizukuShell
@@ -148,6 +151,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun markTest(test: UnifiedTest, verdict: Verdict) = repository.markTest(test, verdict)
 
+    /** Forgets a hands-on test's result and its saved step answers. */
+    fun clearAnswers(test: UnifiedTest) {
+        Store(getApplication()).saveGuidedDraft(test.id, GuidedDraft())
+        repository.markTest(test, Verdict.UNTESTED)
+    }
+
     fun refreshHistory() {
         viewModelScope.launch { _history.value = repository.history() }
     }
@@ -165,6 +174,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun markdownReport(): String = repository.buildReport().toMarkdown()
 
     fun jsonReport(): String = repository.buildReport().toJson()
+
+    /** Writes the HTML report next to the others and returns it, to share as a file. */
+    suspend fun htmlReportFile(): File = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        File(repository.reportsDir, "report.html").apply { writeText(repository.buildReport().toHtml()) }
+    }
 }
 
 data class LoadedTheme(val hints: ThemeHints?)
