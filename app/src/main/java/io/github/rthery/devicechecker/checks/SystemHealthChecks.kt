@@ -74,15 +74,27 @@ val systemHealthChecks = listOf(
     Check("selinux.denials", "SELinux denials") {
         val read = read("logcat -d -b main,system,events,crash | grep 'avc:  denied' | tail -2000") { true }
         val log = read.output ?: return@Check needsShell()
-        val denials = AVC_DENIAL.findAll(log).map { "${it.groupValues[2]} -> ${it.groupValues[3]}:${it.groupValues[4]} {${it.groupValues[1].trim()}}" }
-            .groupingBy { it }.eachCount().toList().sortedByDescending { it.second }
+        val (system, apps) = summarizeDenials(log)
         val permissive = log.lines().count { it.contains("permissive=1") }
-        val details = denials.take(TOP_DENIALS).joinToString("\n") { "${it.second}x ${it.first}" } +
-            if (denials.size > TOP_DENIALS) "\n... ${denials.size - TOP_DENIALS} more distinct denials" else ""
+        val details = system.take(TOP_DENIALS).joinToString("\n") { "${it.second}x ${it.first}" } +
+            (if (system.size > TOP_DENIALS) "\n... ${system.size - TOP_DENIALS} more distinct denials" else "") +
+            (if (apps.isNotEmpty()) "\nApp domains, mostly lookups by apps such as this one: " + apps.joinToString("; ") { "${it.second}x ${it.first}" } else "")
         when {
-            denials.isEmpty() -> pass("No SELinux denials in the current log", access = read.access)
-            permissive > 0 -> warn("${denials.size} distinct denials allowed only because the domain is permissive. They break an enforcing build.", details, read.access)
-            else -> warn("${denials.size} distinct denials in the current log", details, read.access)
+            system.isEmpty() -> pass("No denials from system domains (${apps.size} from app domains)", details, read.access)
+            permissive > 0 -> warn("${system.size} distinct system denials allowed only because the domain is permissive. They break an enforcing build.", details, read.access)
+            else -> warn("${system.size} distinct denials from system domains", details, read.access)
         }
     },
 )
+
+// Apps probing services they may not use (this checker included) are expected to be denied.
+private val APP_DOMAIN = Regex("""^(untrusted_app\w*|isolated_app|ephemeral_app|sdk_sandbox)$""")
+
+/** Distinct denials with their counts, split into system domains and app domains, most frequent first. */
+internal fun summarizeDenials(log: String): Pair<List<Pair<String, Int>>, List<Pair<String, Int>>> {
+    val counted = AVC_DENIAL.findAll(log)
+        .map { it.groupValues[2] to "${it.groupValues[2]} -> ${it.groupValues[3]}:${it.groupValues[4]} {${it.groupValues[1].trim()}}" }
+        .groupingBy { it }.eachCount().toList().sortedByDescending { it.second }
+    val (apps, system) = counted.partition { APP_DOMAIN.matches(it.first.first) }
+    return system.map { it.first.second to it.second } to apps.map { it.first.second to it.second }
+}

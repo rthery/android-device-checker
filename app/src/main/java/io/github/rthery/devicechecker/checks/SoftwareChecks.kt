@@ -168,7 +168,8 @@ val softwareChecks = listOf(
 
     Check("livedisplay", "LiveDisplay HAL") {
         if (!lineageBased) return@Check notApplicable("Not a LineageOS-based build")
-        val read = read("service list 2>/dev/null; lshal --neat 2>/dev/null") { true }
+        // Apps only see passthrough HALs, so a list without binderized ("D") entries falls through to Shizuku.
+        val read = read("lshal --neat 2>/dev/null") { output -> output.lines().any { it.startsWith("D") } }
         val output = read.output ?: return@Check needsShell()
         val matches = output.lines().filter { it.contains("vendor.lineage.livedisplay", ignoreCase = true) }.distinct()
         if (matches.isNotEmpty()) pass("LiveDisplay HAL registered", matches.joinToString("\n"), read.access)
