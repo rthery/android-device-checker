@@ -87,10 +87,19 @@ val extraChecks = listOf(
         val type = (values["real_type"] ?: values["usb_type"] ?: values["type"]).orEmpty()
         val limit = (values["input_current_max"] ?: values["current_max"])?.toIntOrNull()?.let(::toMicroAmps)
         val isSdp = type.equals("USB", ignoreCase = true) || type.contains("SDP", ignoreCase = true)
+        val stockCharging = stock?.charging.orEmpty()
+        val stockType = (stockCharging["real_type"] ?: stockCharging["usb_type"] ?: stockCharging["type"]).orEmpty()
+        val stockLimit = (stockCharging["input_current_max"] ?: stockCharging["current_max"])?.toIntOrNull()?.let(::toMicroAmps)
+        val withStock = if (stockLimit != null) "$details\nStock capture: type=$stockType, limit ${stockLimit / 1000} mA" else details
+        // The limit depends on the port, so it only compares with stock on the same charger type.
+        val sameCharger = stockLimit != null && limit != null && stockType.equals(type, ignoreCase = true)
         when {
-            isSdp && limit != null && limit > SDP_USB3_MAX_UA -> fail("Standard USB port but input limit is ${limit / 1000} mA", details, read.access)
-            isSdp && limit != null && limit > SDP_MAX_UA -> warn("Standard USB port with ${limit / 1000} mA limit (only valid on USB 3)", details, read.access)
-            else -> info("Charger type $type, limit ${limit?.div(1000) ?: "?"} mA. Compare with stock.", details, read.access)
+            isSdp && limit != null && limit > SDP_USB3_MAX_UA -> fail("Standard USB port but input limit is ${limit / 1000} mA", withStock, read.access)
+            isSdp && limit != null && limit > SDP_MAX_UA -> warn("Standard USB port with ${limit / 1000} mA limit (only valid on USB 3)", withStock, read.access)
+            sameCharger && limit!! > stockLimit!! -> fail("$type limit ${limit / 1000} mA is above stock's ${stockLimit / 1000} mA", withStock, read.access)
+            sameCharger -> pass("$type limit ${limit!! / 1000} mA, within stock's ${stockLimit!! / 1000} mA", withStock, read.access)
+            stockLimit != null -> info("Charger type $type differs from the stock capture ($stockType). Plug into the same kind of port to compare.", withStock, read.access)
+            else -> info("Charger type $type, limit ${limit?.div(1000) ?: "?"} mA. Import a stock capture to compare.", withStock, read.access)
         }
     },
 
