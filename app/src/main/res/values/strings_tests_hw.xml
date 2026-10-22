@@ -75,6 +75,17 @@
     <string name="hw_sensor_gyroscope_instruction">Rotate the phone quickly.</string>
     <string name="hw_sensor_reaction_instructions">Do each action. A sensor turns green when it reacts.</string>
     <string name="hw_sensor_no_event_yet">no event yet</string>
+    <string name="hw_gesture_instructions">These sensors only report when the phone moves in a certain way. Do each action; a sensor gets a check mark when it reports.</string>
+    <string name="hw_gesture_permission">Step sensors need the Physical activity permission.</string>
+    <string name="hw_gesture_none">This device has no gesture sensors.</string>
+    <string name="hw_gesture_significant_motion">Walk around for about 10 seconds holding the phone.</string>
+    <string name="hw_gesture_steps">Walk about 10 steps holding the phone.</string>
+    <string name="hw_gesture_tilt">Tilt the phone by about 45 degrees and hold it for 3 seconds.</string>
+    <string name="hw_gesture_pick_up">Put the phone flat on a table, wait 2 seconds, then pick it up.</string>
+    <string name="hw_gesture_double_twist">Hold the phone and twist your wrist quickly twice.</string>
+    <string name="hw_gesture_double_tap">Put the phone on a table and tap its edge firmly twice.</string>
+    <string name="hw_gesture_orientation">Turn the phone sideways into landscape, then back.</string>
+    <string name="hw_gesture_wake">Pick up the phone or move it as if to look at it.</string>
     <string name="hw_sensor_save_unreached">Save (unreached count as failed)</string>
     <string name="hw_sensor_stock_no_fingerprint">Stock has no fingerprint sensor</string>
     <string name="hw_sensor_fp_none_enrolled">No fingerprint is enrolled. Enrolling one is itself a good test of the sensor.</string>

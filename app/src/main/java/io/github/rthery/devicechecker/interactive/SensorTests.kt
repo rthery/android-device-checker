@@ -8,6 +8,10 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.TriggerEvent
+import android.hardware.TriggerEventListener
+import android.Manifest
+import io.github.rthery.devicechecker.checks.isGestureSensor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,6 +49,7 @@ private const val LIGHT_DROP_RATIO = 0.3f
 
 val sensorTests = listOf(
     InteractiveTest("sensors.motion", "Sensor reactions", "Asks you to move or cover the phone and detects each sensor reacting.") { SensorReactionTest(it) },
+    InteractiveTest("sensors.gestures", "Sensor gestures", "Asks you to walk, tilt, pick up or twist the phone and detects each gesture sensor reporting.") { GestureSensorTest(it) },
     InteractiveTest("fingerprint.auth", "Fingerprint unlock", "Shows the system fingerprint prompt and checks a match and a rejection.") { FingerprintTest(it) },
     InteractiveTest("ir.transmit", "IR blaster", "Sends TV power codes so you can see or check the emitter.") { IrTest(it) },
 )
@@ -121,6 +126,84 @@ private fun SensorReactionTest(scope: TestScope) {
             }
             scope.finish(results.toResult("Every core sensor reacted", "No core sensors present"))
         }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(if (reached.size == goals.size) R.string.save_result else R.string.hw_sensor_save_unreached)) }
+    }
+}
+
+@StringRes
+private fun gestureInstruction(type: String): Int = when (type) {
+    "android.sensor.significant_motion" -> R.string.hw_gesture_significant_motion
+    "android.sensor.step_detector", "android.sensor.step_counter" -> R.string.hw_gesture_steps
+    "android.sensor.tilt_detector" -> R.string.hw_gesture_tilt
+    "android.sensor.pick_up_gesture" -> R.string.hw_gesture_pick_up
+    "com.google.sensor.double_twist" -> R.string.hw_gesture_double_twist
+    "com.google.sensor.double_tap" -> R.string.hw_gesture_double_tap
+    "android.sensor.device_orientation" -> R.string.hw_gesture_orientation
+    else -> R.string.hw_gesture_wake
+}
+
+@Composable
+private fun GestureSensorTest(scope: TestScope) {
+    RequirePermissions(listOf(Manifest.permission.ACTIVITY_RECOGNITION), stringResource(R.string.hw_gesture_permission)) {
+        GestureSensorContent(scope)
+    }
+}
+
+@Composable
+private fun GestureSensorContent(scope: TestScope) {
+    val manager = remember { scope.activity.getSystemService(SensorManager::class.java) }
+    val gestures = remember { manager.getSensorList(Sensor.TYPE_ALL).filter(::isGestureSensor) }
+    val reported = remember { mutableStateMapOf<Sensor, Boolean>() }
+
+    DisposableEffect(manager) {
+        val listeners = mutableListOf<SensorEventListener>()
+        val triggers = mutableListOf<Pair<Sensor, TriggerEventListener>>()
+        gestures.forEach { sensor ->
+            if (sensor.reportingMode == Sensor.REPORTING_MODE_ONE_SHOT) {
+                val listener = object : TriggerEventListener() {
+                    override fun onTrigger(event: TriggerEvent) {
+                        reported[sensor] = true
+                    }
+                }
+                if (manager.requestTriggerSensor(listener, sensor)) triggers += sensor to listener
+            } else {
+                val listener = object : SensorEventListener {
+                    override fun onSensorChanged(event: SensorEvent) {
+                        reported[sensor] = true
+                    }
+
+                    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
+                }
+                if (manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)) listeners += listener
+            }
+        }
+        onDispose {
+            listeners.forEach(manager::unregisterListener)
+            triggers.forEach { (sensor, listener) -> manager.cancelTriggerSensor(listener, sensor) }
+        }
+    }
+
+    if (gestures.isEmpty()) {
+        NotApplicable(scope, R.string.hw_gesture_none)
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Instructions(stringResource(R.string.hw_gesture_instructions))
+        gestures.forEach { sensor ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("${if (reported[sensor] == true) "✓" else "…"} ${sensor.name}", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(gestureInstruction(sensor.stringType)), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+        Button(onClick = {
+            val results = ItemResults()
+            gestures.forEach { sensor ->
+                if (reported[sensor] == true) results.add(CheckStatus.PASS, "${sensor.name} reported")
+                else results.add(CheckStatus.FAIL, "${sensor.name} did not report")
+            }
+            scope.finish(results.toResult("Every gesture sensor reported", "No gesture sensors present"))
+        }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(if (reported.size == gestures.size) R.string.save_result else R.string.hw_sensor_save_unreached)) }
     }
 }
 

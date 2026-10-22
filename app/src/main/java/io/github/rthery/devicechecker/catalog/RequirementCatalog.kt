@@ -100,7 +100,7 @@ object RequirementCatalog {
         Requirement("hw.sd.adoptable", Section.SD_CARD, SHOULD, "Adoptable storage works.", INTERACTIVE, testIds = listOf("sd.adoptable")),
 
         Requirement("hw.sensors.core", Section.SENSORS, MUST, "Accelerometer, gyroscope, proximity and light sensors work if present.", INTERACTIVE, listOf("sensors.core"), listOf("sensors.motion")),
-        Requirement("hw.sensors.other", Section.SENSORS, SHOULD, "Other sensors supported by stock work.", ASSISTED, listOf("sensors.list")),
+        Requirement("hw.sensors.other", Section.SENSORS, SHOULD, "Other sensors supported by stock work.", INTERACTIVE, listOf("sensors.list"), listOf("sensors.gestures")),
 
         Requirement("qa.battery.capacity", Section.BATTERY, SHOULD, "The battery reports a capacity in line with the device spec.", AUTOMATED, listOf("battery.capacity")),
         Requirement("qa.charging.offmode", Section.BATTERY, SHOULD, "Off-mode charging shows the battery state while the device is off.", INTERACTIVE, testIds = listOf("charging.offmode")),

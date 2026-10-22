@@ -74,7 +74,7 @@ val hardwareChecks = listOf(
         val telephony = context.getSystemService(TelephonyManager::class.java)
         val subsystems = read("for d in /sys/bus/msm_subsys/devices/*; do echo \"\$(cat \$d/name 2>/dev/null)=\$(cat \$d/state 2>/dev/null)\"; done; true") { it.contains("=") }.output
         val radio = android.os.Build.getRadioVersion().orEmpty()
-        val details = "Phone type: ${telephony.phoneType}\nSIM state: ${telephony.simState}\nRIL: ${prop("gsm.version.ril-impl").ifEmpty { "unknown" }}\n" +
+        val details = "Phone type: ${telephony.phoneType}\nSIM state: ${telephony.simState}\nNetwork: ${telephony.networkOperatorName} (${telephony.networkOperator})\nRIL: ${prop("gsm.version.ril-impl").ifEmpty { "unknown" }}\n" +
             "Baseband: ${radio.ifEmpty { "empty" }}\nSubsystems: ${subsystems?.lines()?.joinToString() ?: "needs Shizuku"}"
         val modemOffline = subsystems?.lines()?.any { it.startsWith("modem=") && !it.endsWith("ONLINE") } == true
         when {
@@ -82,7 +82,8 @@ val hardwareChecks = listOf(
             modemOffline -> fail("Modem subsystem is not ONLINE", details)
             radio.isEmpty() -> fail("No baseband version: the RIL is not talking to the modem", details)
             telephony.simState != TelephonyManager.SIM_STATE_READY -> warn("Telephony present, no ready SIM. Insert one to test calls and data.", details)
-            else -> info("Telephony present, SIM ready. Test a call and mobile data by hand.", details)
+            telephony.networkOperator.isNullOrEmpty() -> warn("SIM ready, but the modem is not registered on a network", details)
+            else -> pass("Modem, SIM and network registration work (${telephony.networkOperatorName}). Calls are tested by the Phone call audio test.", details)
         }
     },
 
@@ -171,10 +172,32 @@ val hardwareChecks = listOf(
     },
 
     Check("sensors.list", "All sensors") {
-        val sensors = context.getSystemService(SensorManager::class.java).getSensorList(Sensor.TYPE_ALL)
-        val details = sensors.joinToString("\n") { "${it.stringType.substringAfterLast('.')}: ${it.name} (${it.vendor})" }
-        compareWithStock("sensors", stock?.sensors, sensors.map { sensorKey(it.stringType.substringAfterLast('.'), it.name) }, details)
-            ?: info("${sensors.size} sensors. Compare with stock, or import a stock capture.", details)
+        val process = ActivityManager.RunningAppProcessInfo().also(ActivityManager::getMyMemoryState)
+        if (process.importance > ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+            return@Check warn("Android withholds sensor events from background apps. Run the checks from the app.")
+        }
+        val manager = context.getSystemService(SensorManager::class.java)
+        val sensors = manager.getSensorList(Sensor.TYPE_ALL)
+        val reported = sampleSensors(manager, sensors)
+        val silent = sensors.filter { it !in reported && it.reportingMode == Sensor.REPORTING_MODE_CONTINUOUS }
+        val gestures = sensors.filter { it !in reported && it.reportingMode != Sensor.REPORTING_MODE_CONTINUOUS && isGestureSensor(it) }
+        val details = sensors.joinToString("\n") { sensor ->
+            val state = when {
+                sensor in reported -> "events OK"
+                sensor in silent -> "NO EVENT in ${SENSOR_EVENT_TIMEOUT_MS / 1000}s"
+                sensor in gestures -> "needs a movement (Sensor gestures test)"
+                else -> "reports only on internal triggers, not testable from an app"
+            }
+            "${sensor.stringType.substringAfterLast('.')}: ${sensor.name} (${sensor.vendor}): $state"
+        }
+        val listing = compareWithStock("sensors", stock?.sensors, sensors.map { sensorKey(it.stringType.substringAfterLast('.'), it.name) }, details)
+        val gestureNote = if (gestures.isEmpty()) "" else ". ${gestures.size} gesture sensor(s) need the Sensor gestures test"
+        when {
+            listing?.status == CheckStatus.FAIL -> listing
+            silent.isNotEmpty() -> fail("${silent.size} continuous sensor(s) sent no events: ${silent.joinToString { it.name }}", details)
+            listing == null -> info("${reported.size} of ${sensors.size} sensors send events$gestureNote. Import a stock capture to compare the list.", details)
+            else -> pass("Sensor list matches stock, ${reported.size} sensors send events$gestureNote", listing.details)
+        }
     },
 
     Check("camera.list", "Cameras") {
@@ -272,6 +295,51 @@ private fun facingName(facing: Int?) = when (facing) {
     CameraCharacteristics.LENS_FACING_FRONT -> "front"
     CameraCharacteristics.LENS_FACING_EXTERNAL -> "external"
     else -> "unknown"
+}
+
+/** Types a person can trigger by moving or tapping the phone. */
+internal val GESTURE_SENSOR_TYPES = setOf(
+    "android.sensor.significant_motion", "android.sensor.step_detector", "android.sensor.step_counter",
+    "android.sensor.tilt_detector", "android.sensor.wake_gesture", "android.sensor.glance_gesture",
+    "android.sensor.pick_up_gesture", "android.sensor.device_orientation",
+    "com.google.sensor.double_twist", "com.google.sensor.double_tap",
+)
+
+internal fun isGestureSensor(sensor: Sensor) = sensor.stringType in GESTURE_SENSOR_TYPES
+
+/** Listens to every sensor at once and returns those that sent an event before the timeout. */
+private suspend fun sampleSensors(manager: SensorManager, sensors: List<Sensor>): Set<Sensor> {
+    val reported = java.util.Collections.synchronizedSet(mutableSetOf<Sensor>())
+    val listeners = mutableListOf<SensorEventListener>()
+    val triggers = mutableListOf<Pair<Sensor, android.hardware.TriggerEventListener>>()
+    try {
+        withTimeoutOrNull(SENSOR_EVENT_TIMEOUT_MS) {
+            suspendCancellableCoroutine { continuation ->
+                fun mark(sensor: Sensor) {
+                    reported += sensor
+                    if (reported.size == sensors.size && continuation.isActive) continuation.resume(Unit)
+                }
+                sensors.forEach { sensor ->
+                    if (sensor.reportingMode == Sensor.REPORTING_MODE_ONE_SHOT) {
+                        val listener = object : android.hardware.TriggerEventListener() {
+                            override fun onTrigger(event: android.hardware.TriggerEvent) = mark(sensor)
+                        }
+                        if (manager.requestTriggerSensor(listener, sensor)) triggers += sensor to listener
+                    } else {
+                        val listener = object : SensorEventListener {
+                            override fun onSensorChanged(event: SensorEvent) = mark(sensor)
+                            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
+                        }
+                        if (manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL)) listeners += listener
+                    }
+                }
+            }
+        }
+    } finally {
+        listeners.forEach(manager::unregisterListener)
+        triggers.forEach { (sensor, listener) -> manager.cancelTriggerSensor(listener, sensor) }
+    }
+    return reported.toSet()
 }
 
 private suspend fun awaitSensorEvent(sensors: SensorManager, sensor: Sensor): Boolean =
