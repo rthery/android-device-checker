@@ -101,6 +101,9 @@ import io.github.rthery.devicechecker.shell.ShizukuState
 
 private enum class Lane { YOU, AUTO }
 
+/** Header, summary card, lane switch, run button and run title come before the run's rows. */
+private const val RUN_ROWS_START = 5
+
 private enum class ResultFilter(@StringRes val label: Int) {
     FAILED(R.string.tests_tile_failed), TO_CHECK(R.string.tests_tile_to_check), PASSED(R.string.tests_tile_passed),
 }
@@ -144,7 +147,7 @@ fun TestsTab(
     }
     val live = remember(states, progress) {
         val run = progress ?: return@remember states
-        states + tests.filter { it.kind == TestKind.AUTO }.mapNotNull { test ->
+        states + tests.filter { it.kind == TestKind.AUTO || it.id in run.ids }.mapNotNull { test ->
             when (test.id) {
                 run.currentId -> test.id to TestState.RUNNING
                 in run.pendingIds -> test.id to TestState.QUEUED
@@ -160,6 +163,13 @@ fun TestsTab(
     val automaticIds = remember(tests) { tests.filter { it.kind == TestKind.AUTO }.map { it.id }.toSet() }
     val waitingForStock = remember(tests, stock) { if (stock == null) tests.count { it.id in stockComparisonIds } else 0 }
     val runActive = progress != null
+    // Follow the running test down the list, unless the tester is scrolling.
+    LaunchedEffect(progress?.currentId, lane, filter) {
+        val run = progress ?: return@LaunchedEffect
+        if (lane != Lane.AUTO || filter != null || listState.isScrollInProgress) return@LaunchedEffect
+        val row = run.ids.filter { it in catalog.byId }.indexOf(run.currentId).takeIf { it >= 0 } ?: return@LaunchedEffect
+        listState.animateScrollToItem(RUN_ROWS_START + row, scrollOffset = -listState.layoutInfo.viewportSize.height / 3)
+    }
 
     fun line(test: UnifiedTest) = lineFor(test, live.getValue(test.id), results[test.id], waivers[test.id])
     fun open(test: UnifiedTest) {
@@ -267,14 +277,21 @@ fun TestsTab(
             Lane.AUTO -> {
                 item(key = "run-all") {
                     val run = progress
-                    if (run != null) RunningPill(run.done + 1, run.total, onStop = viewModel::stopRun)
+                    if (run != null) RunningPill(run.done + 1, run.total, run.current, onStop = viewModel::stopRun)
                     else Button(onClick = { viewModel.runTests(automaticIds) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                         Icon(Icons.Filled.PlayArrow, null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.tests_run_all_again))
                     }
                 }
-                val automatic = tests.filter { it.kind == TestKind.AUTO }.sortedBy { it.level?.ordinal ?: Int.MAX_VALUE }
+                // The run's own tests stay in run order while it lasts, so each row changes in place.
+                val inRun = progress?.ids.orEmpty().mapNotNull { id -> catalog.byId[id] }
+                if (inRun.isNotEmpty()) {
+                    item(key = "run-title") { SectionTitle(stringResource(R.string.tests_section_this_run, inRun.size), Modifier.padding(top = 8.dp)) }
+                    items(inRun, key = { "run-${it.id}" }) { test -> ResultRow(test, live.getValue(test.id), line(test), onOpen = { selectedId = test.id }) }
+                }
+                val runIds = inRun.map { it.id }.toSet()
+                val automatic = tests.filter { it.kind == TestKind.AUTO && it.id !in runIds }.sortedBy { it.level?.ordinal ?: Int.MAX_VALUE }
                 listOf(
                     R.string.tests_section_failed to automatic.filter { states.getValue(it.id) == TestState.FAIL },
                     R.string.tests_section_to_check to automatic.filter { states.getValue(it.id).isToCheck(it.kind) },
@@ -449,12 +466,16 @@ private fun StockBanner(count: Int, onImport: (android.net.Uri) -> Unit) {
 }
 
 @Composable
-private fun RunningPill(position: Int, total: Int, onStop: () -> Unit) {
-    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-        Box(Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun RunningPill(position: Int, total: Int, current: String, onStop: () -> Unit) {
+    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+        Box(Modifier.fillMaxWidth().height(56.dp)) {
+            Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 4.dp).height(56.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CircularProgressIndicator(Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimaryContainer, strokeWidth = 2.5.dp)
-                Text(stringResource(R.string.tests_running_position, position, total), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1)
+                // Fixed height and single lines: the test name changes quickly, the layout must not.
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.tests_running_position, position, total), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                    Text(current, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 TextButton(onClick = onStop, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer)) { Text(stringResource(R.string.tests_stop)) }
             }
             LinearProgressIndicator(

@@ -174,4 +174,5 @@
     <string name="guided_next_new_category">Next category: %1$s</string>
     <string name="guided_back_to_tests">Back to tests</string>
     <string name="tests_section_not_run">Not run yet (%1$d)</string>
+    <string name="tests_section_this_run">This run (%1$d)</string>
 </resources>

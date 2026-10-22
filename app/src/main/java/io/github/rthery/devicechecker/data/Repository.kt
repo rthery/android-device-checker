@@ -40,7 +40,8 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-data class RunProgress(val done: Int, val total: Int, val current: String, val currentId: String, val pendingIds: Set<String>)
+/** [ids] lists every test of the run in the order it runs them. */
+data class RunProgress(val done: Int, val total: Int, val current: String, val currentId: String, val pendingIds: Set<String>, val ids: List<String> = emptyList())
 
 data class RunSummary(val ran: Int, val failed: Int, val stopped: Boolean)
 
@@ -200,7 +201,7 @@ class Repository private constructor(context: Context) {
         try {
             checks.forEachIndexed { index, check ->
                 val pending = checks.drop(index + 1).map { it.id }.toSet()
-                _progress.value = RunProgress(index, checks.size, check.title, check.id, pending)
+                _progress.value = RunProgress(index, checks.size, check.title, check.id, pending, checks.map { it.id })
                 writeStatus("running", "${index + 1}/${checks.size} ${check.id}")
                 val startedAt = context.crashWatcher.mark()
                 val startedElapsed = android.os.SystemClock.elapsedRealtime()
