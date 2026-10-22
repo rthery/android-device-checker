@@ -34,4 +34,6 @@ data class DeviceProfile(
     val stockBluetoothMac: String = "",
     /** A2DP source codecs stock offers, as the stack names them (SBC, AAC, aptX, aptX HD, LDAC...). */
     val stockBluetoothCodecs: List<String> = emptyList(),
+    /** Battery design capacity in mAh, as stock reports it or as the OEM spec sheet gives it. */
+    val stockBatteryDesignMah: Int? = null,
 )

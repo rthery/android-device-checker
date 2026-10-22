@@ -60,6 +60,7 @@
     <string name="screen_profile_width">Width (px)</string>
     <string name="screen_profile_height">Height (px)</string>
     <string name="screen_profile_density">Density (dpi)</string>
+    <string name="screen_profile_battery_design">Battery design capacity (mAh)</string>
     <string name="screen_profile_hdr10">HDR10</string>
     <string name="screen_profile_section_security">Security and storage</string>
     <string name="screen_profile_forced_encryption">Forced encryption</string>

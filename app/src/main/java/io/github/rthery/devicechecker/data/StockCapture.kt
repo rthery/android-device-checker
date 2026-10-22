@@ -21,6 +21,7 @@ import android.view.Display
 import io.github.rthery.devicechecker.checks.APTX_LIBRARY_COMMAND
 import io.github.rthery.devicechecker.checks.BLUETOOTH_DUMP_COMMAND
 import io.github.rthery.devicechecker.checks.CheckContext
+import io.github.rthery.devicechecker.checks.toMilliAmpHours
 import io.github.rthery.devicechecker.checks.IO_SCHEDULER_COMMAND
 import io.github.rthery.devicechecker.checks.WIFI_MAC_COMMAND
 import io.github.rthery.devicechecker.checks.extractMac
@@ -114,6 +115,8 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
     val governors = read("$CPUFREQ_DIRS; for d in \$dirs; do cat \$d/scaling_available_governors; done") { it.isNotBlank() }.output
     val schedulers = read(IO_SCHEDULER_COMMAND, ::hasSchedulerLines).output
     val charging = read("for f in type real_type current_max input_current_max voltage_max; do v=\$(cat /sys/class/power_supply/usb/\$f 2>/dev/null) && echo \"\$f=\$v\"; done; true") { it.contains("=") }.output
+    val batteryDesign = read("for d in battery bms; do cat /sys/class/power_supply/\$d/charge_full_design 2>/dev/null && break; done; true") { it.isNotBlank() }
+        .output?.lines()?.firstNotNullOfOrNull { it.trim().toLongOrNull() }?.let { toMilliAmpHours(it).toInt() }
     val filesystems = readFileAsApp("/proc/filesystems") ?: read("cat /proc/filesystems").output.orEmpty()
     val wifiMac = read(WIFI_MAC_COMMAND) { extractMac(it) != null }.output?.let(::extractMac)
         ?: wifiLinkLocalMac(context.getSystemService(ConnectivityManager::class.java)).orEmpty()
@@ -152,6 +155,7 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
         stockWifiMac = wifiMac,
         stockBluetoothMac = btMac,
         stockBluetoothCodecs = btCodecs,
+        stockBatteryDesignMah = batteryDesign,
     )
 
     return StockSnapshot(

@@ -32,6 +32,7 @@ private const val CONNECTIVITY_URL = "https://connectivitycheck.gstatic.com/gene
 private const val NETWORK_TIMEOUT_MS = 10_000
 private const val SD_TEST_BYTES = 16 * 1024 * 1024
 private const val SDP_MAX_UA = 500_000
+private const val BATTERY_SPEC_TOLERANCE_PERCENT = 5
 private const val SDP_USB3_MAX_UA = 900_000
 
 val extraChecks = listOf(
@@ -115,7 +116,15 @@ val extraChecks = listOf(
         val design = values["charge_full_design"]?.let(::toMilliAmpHours)
         val full = values["charge_full"]?.let(::toMilliAmpHours)
         val health = if (design != null && full != null && design > 0) " (${full * 100 / design} % of design)" else ""
-        info("Design ${design ?: "?"} mAh, full charge ${full ?: "?"} mAh$health. Compare with the device spec.", output, read.access)
+        val spec = profile.stockBatteryDesignMah
+        val summary = "Design ${design ?: "?"} mAh, full charge ${full ?: "?"} mAh$health"
+        when {
+            spec == null -> info("$summary. Set the stock design capacity in the profile to compare.", output, read.access)
+            design == null -> warn("No design capacity reported; stock is $spec mAh", output, read.access)
+            // Gauges round the design value, so a few percent either way is the same battery.
+            kotlin.math.abs(design - spec) * 100 <= spec * BATTERY_SPEC_TOLERANCE_PERCENT -> pass("$summary, stock $spec mAh", output, read.access)
+            else -> warn("$summary, but stock is $spec mAh", output, read.access)
+        }
     },
 
     Check("bluetooth.codecs", "Bluetooth audio codecs") {
@@ -136,7 +145,7 @@ val extraChecks = listOf(
 private fun toMicroAmps(value: Int): Int = if (value in 1 until 20_000) value * 1000 else value
 
 /** Kernels report µAh, a few report mAh. */
-private fun toMilliAmpHours(value: Long): Long = if (value >= 100_000) value / 1000 else value
+internal fun toMilliAmpHours(value: Long): Long = if (value >= 100_000) value / 1000 else value
 
 // Arbitrary, outside the reserved 0xFFFFFF00-0xFFFFFFFF system range.
 private const val CHECKER_STATS_TAG = 0x0dc1

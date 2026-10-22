@@ -85,6 +85,7 @@ fun ProfileScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             Toggle(R.string.screen_profile_front_camera, profile.stockHasFrontCamera) { profile = profile.copy(stockHasFrontCamera = it) }
             NumberField(R.string.screen_profile_rear_camera_count, profile.stockRearCameraCount) { profile = profile.copy(stockRearCameraCount = it) }
             NumberField(R.string.screen_profile_front_camera_count, profile.stockFrontCameraCount) { profile = profile.copy(stockFrontCameraCount = it) }
+            NumberField(R.string.screen_profile_battery_design, profile.stockBatteryDesignMah) { profile = profile.copy(stockBatteryDesignMah = it) }
 
             SectionTitle(R.string.screen_profile_section_display)
             NumberField(R.string.screen_profile_width, profile.stockWidthPx) { profile = profile.copy(stockWidthPx = it) }

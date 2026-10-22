@@ -42,9 +42,9 @@ object RequirementCatalog {
         Requirement("qa.ims", Section.RIL, SHOULD, "VoLTE and VoWiFi calls work where the carrier supports them.", INTERACTIVE, testIds = listOf("ims.calls")),
         Requirement("qa.multisim", Section.RIL, SHOULD, "Dual SIM and eSIM work if stock supports them.", INTERACTIVE, testIds = listOf("sim.multi")),
 
-        Requirement("hw.crypto.hardware", Section.ENCRYPTION, MUST, "Hardware-backed encryption works if stock had it.", ASSISTED, listOf("crypto.status", "keystore.hardware")),
+        Requirement("hw.crypto.hardware", Section.ENCRYPTION, MUST, "Hardware-backed encryption works if stock had it.", AUTOMATED, listOf("crypto.status", "keystore.hardware")),
         Requirement("hw.crypto.forced", Section.ENCRYPTION, SHOULD, "Devices that shipped with forced encryption are encrypted by default.", AUTOMATED, listOf("crypto.status")),
-        Requirement("hw.crypto.software", Section.ENCRYPTION, MUST, "Software encryption works.", ASSISTED, listOf("crypto.status")),
+        Requirement("hw.crypto.software", Section.ENCRYPTION, MUST, "Software encryption works.", AUTOMATED, listOf("crypto.status")),
 
         Requirement("hw.wifi.works", Section.WIFI, MUST, "Wi-Fi works if stock has it.", AUTOMATED, listOf("wifi.present", "network.wifi", "network.trafficstats")),
         Requirement(
@@ -74,7 +74,7 @@ object RequirementCatalog {
         Requirement("hw.camera.hal", Section.CAMERA, MUST, "Every accessible Camera HAL version meets the camera and video requirements.", INTERACTIVE, testIds = listOf("hw.camera.hal")),
         Requirement("hw.video", Section.CAMERA, MUST, "Video recording works on front and rear cameras if stock has it.", INTERACTIVE, testIds = listOf("video.record", "camera.stress")),
 
-        Requirement("hw.codecs", Section.CODECS, MUST, "Hardware encode and decode work for every non-proprietary codec stock supports.", ASSISTED, listOf("codecs.hardware", "codecs.roundtrip")),
+        Requirement("hw.codecs", Section.CODECS, MUST, "Hardware encode and decode work for every non-proprietary codec stock supports.", AUTOMATED, listOf("codecs.hardware", "codecs.roundtrip")),
 
         Requirement("hw.display.resolution", Section.DISPLAY, MUST, "Built-in displays run at stock resolution.", AUTOMATED, listOf("display.resolution")),
         Requirement("hw.display.density", Section.DISPLAY, SHOULD, "Built-in displays use stock density.", AUTOMATED, listOf("display.density")),
@@ -102,7 +102,7 @@ object RequirementCatalog {
         Requirement("hw.sensors.core", Section.SENSORS, MUST, "Accelerometer, gyroscope, proximity and light sensors work if present.", INTERACTIVE, listOf("sensors.core"), listOf("sensors.motion")),
         Requirement("hw.sensors.other", Section.SENSORS, SHOULD, "Other sensors supported by stock work.", ASSISTED, listOf("sensors.list")),
 
-        Requirement("qa.battery.capacity", Section.BATTERY, SHOULD, "The battery reports a capacity in line with the device spec.", ASSISTED, listOf("battery.capacity")),
+        Requirement("qa.battery.capacity", Section.BATTERY, SHOULD, "The battery reports a capacity in line with the device spec.", AUTOMATED, listOf("battery.capacity")),
         Requirement("qa.charging.offmode", Section.BATTERY, SHOULD, "Off-mode charging shows the battery state while the device is off.", INTERACTIVE, testIds = listOf("charging.offmode")),
         Requirement("qa.charging.cables", Section.BATTERY, SHOULD, "Charging works with USB-A to C and C to C cables.", INTERACTIVE, testIds = listOf("charging.cables")),
 
@@ -118,7 +118,7 @@ object RequirementCatalog {
 
         Requirement("sw.kernel.prebuilt", Section.KERNEL, MUST_NOT, "Non-GKI devices do not ship a prebuilt kernel. GKI devices build every feasible module from source.", OUT_OF_SCOPE),
         Requirement("sw.kernel.wakegestures", Section.KERNEL, MUST_NOT, "No software wake gestures without touchscreen firmware support (software double-tap is fine when firmware supports single-tap).", MANUAL),
-        Requirement("sw.kernel.fastcharge", Section.KERNEL, MUST_NOT, "No forced fast charging that violates the USB specification.", ASSISTED, listOf("charging.usb")),
+        Requirement("sw.kernel.fastcharge", Section.KERNEL, MUST_NOT, "No forced fast charging that violates the USB specification.", AUTOMATED, listOf("charging.usb")),
         Requirement("sw.kernel.clocks", Section.KERNEL, MUST, "CPU and GPU clocks and voltages match stock binning or SoC vendor documentation.", ASSISTED, listOf("kernel.clocks")),
         Requirement("sw.kernel.registers", Section.KERNEL, MUST_NOT, "No hardware register manipulation that stock does not do.", OUT_OF_SCOPE),
         Requirement("sw.kernel.ksm", Section.KERNEL, MUST_NOT, "No custom KSM drivers.", OUT_OF_SCOPE),
