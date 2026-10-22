@@ -67,7 +67,6 @@ fun DeviceTab(viewModel: MainViewModel, onEditProfile: () -> Unit, onPacks: () -
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Heading(stringResource(R.string.screen_device_conditions))
-            Text(stringResource(R.string.screen_device_conditions_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 4.dp))
             AdbRootCard(adbRoot == true)
             ShizukuCard(shizuku, shizukuRoot, onRequest = viewModel::requestShizuku, onRefresh = viewModel::refreshShizuku)
             StockBaselineCard(viewModel)
@@ -78,7 +77,6 @@ fun DeviceTab(viewModel: MainViewModel, onEditProfile: () -> Unit, onPacks: () -
                 Heading(stringResource(R.string.screen_device_stock_profile), Modifier.weight(1f))
                 TextButton(onClick = onEditProfile) { Text(stringResource(R.string.screen_device_edit)) }
             }
-            Text(stringResource(R.string.screen_device_stock_profile_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
             Rows(profileRows(profile)) { (key, value) ->
                 Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(key, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

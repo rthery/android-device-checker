@@ -149,7 +149,6 @@
     <string name="tests_detail_redo">Redo this test</string>
     <string name="tests_detail_mark_as">Mark as…</string>
     <string name="tests_detail_clear_answers">Clear my answers</string>
-    <string name="tests_detail_mark_note">Your verdict replaces the app\'s result in reports, marked as set by you.</string>
     <string name="tests_detail_your_answers">Your answers</string>
     <string name="tests_detail_found">What the app found</string>
     <string name="tests_detail_found_now">What the app found just now</string>
@@ -158,12 +157,11 @@
     <string name="guided_previous_step">Previous step</string>
     <string name="guided_finish_later">Save and finish later</string>
     <string name="guided_run_title">Guided run</string>
-    <string name="guided_run_position">Test %1$d of %2$d · answers saved as you go</string>
+    <string name="guided_run_position">Test %1$d of %2$d</string>
     <string name="guided_run_redo">Redoing a finished test</string>
     <string name="guided_run_close">Close the guided run</string>
     <string name="guided_skip_test">Skip this test</string>
     <string name="guided_next_category">Next category</string>
-    <string name="guided_category_hint">You can skip the whole category and come back to it later.</string>
     <string name="guided_start">Start</string>
     <string name="guided_skip_category">Skip category</string>
     <string name="guided_requirement_met">Requirement met</string>

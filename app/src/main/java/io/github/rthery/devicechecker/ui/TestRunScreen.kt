@@ -94,6 +94,12 @@ fun GuidedRunScreen(viewModel: MainViewModel, queue: List<String>, startId: Stri
         currentId = test.id
     }
 
+    val skipCategory = {
+        val inCategory = tests.filter { it.category == current.category }.map { it.id }
+        handled = handled + inCategory
+        goTo(pending.firstOrNull { it.category != current.category && it.id !in inCategory })
+    }
+
     val view = LocalView.current
     DisposableEffect(view) {
         // Interactive tests do not publish automatic-run progress. Keep their visible
@@ -122,6 +128,14 @@ fun GuidedRunScreen(viewModel: MainViewModel, queue: List<String>, startId: Stri
             }
         },
         bottomBar = {
+            // Kept outside the scrolling content so the actions stay visible above long category lists.
+            if (phase == RunPhase.CATEGORY) Column(Modifier.navigationBarsPadding()) {
+                HorizontalDivider()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = skipCategory, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.guided_skip_category)) }
+                    Button(onClick = { phase = RunPhase.TEST }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.guided_start)) }
+                }
+            }
             if (phase == RunPhase.TEST && queue.size > 1) Column(Modifier.navigationBarsPadding()) {
                 HorizontalDivider()
                 Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)) {
@@ -136,16 +150,7 @@ fun GuidedRunScreen(viewModel: MainViewModel, queue: List<String>, startId: Stri
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (phase) {
-                RunPhase.CATEGORY -> CategoryIntro(
-                    current = current,
-                    members = (listOf(current) + pending).filter { it.category == current.category },
-                    onStart = { phase = RunPhase.TEST },
-                    onSkip = {
-                        val inCategory = tests.filter { it.category == current.category }.map { it.id }
-                        handled = handled + inCategory
-                        goTo(pending.firstOrNull { it.category != current.category && it.id !in inCategory })
-                    },
-                )
+                RunPhase.CATEGORY -> CategoryIntro(current, (listOf(current) + pending).filter { it.category == current.category })
                 RunPhase.TEST -> if (current.isRequirementOnly) RequirementQuestion(current) { verdict ->
                     viewModel.markTest(current, verdict)
                     handled = handled + current.id
@@ -182,12 +187,11 @@ private fun RunSegments(tests: List<UnifiedTest>, currentId: String, isDone: (Un
 }
 
 @Composable
-private fun CategoryIntro(current: UnifiedTest, members: List<UnifiedTest>, onStart: () -> Unit, onSkip: () -> Unit) {
+private fun CategoryIntro(current: UnifiedTest, members: List<UnifiedTest>) {
     Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(stringResource(R.string.guided_next_category).uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(stringResource(current.category.titleRes), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.guided_category_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             members.forEach { test ->
@@ -200,8 +204,6 @@ private fun CategoryIntro(current: UnifiedTest, members: List<UnifiedTest>, onSt
                 }
             }
         }
-        Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.guided_start)) }
-        OutlinedButton(onClick = onSkip, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.guided_skip_category)) }
     }
 }
 

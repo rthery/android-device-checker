@@ -182,10 +182,6 @@ internal fun TestDetailContent(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                 ) { Text(stringResource(label), modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurface) }
                             }
-                            Text(
-                                stringResource(R.string.tests_detail_mark_note), style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
-                            )
                         }
                     }
                 }

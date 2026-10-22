@@ -86,7 +86,6 @@ fun ReportTab(viewModel: MainViewModel, modifier: Modifier = Modifier) {
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.screen_report_share_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.screen_report_share_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(onClick = { choosing = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Icon(Icons.Filled.Share, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
