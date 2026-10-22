@@ -77,7 +77,7 @@ val softwareChecks = listOf(
         when (verityMode) {
             "enforcing", "eio" -> fail("dm-verity is active on this userdebug build ($verityMode)", details)
             "disabled", "logging" -> pass("dm-verity is $verityMode", details)
-            else -> warn("Verity state is not exposed (${verityMode.ifEmpty { "empty" }})", details)
+            else -> verityFromMounts(details)
         }
     },
 
@@ -192,4 +192,23 @@ internal fun CheckContext.isInstalled(packageName: String): Boolean = try {
     true
 } catch (_: PackageManager.NameNotFoundException) {
     false
+}
+
+private val SYSTEM_MOUNT_POINTS = setOf("/", "/system", "/vendor", "/product", "/system_ext")
+
+/** Block devices behind the system partitions, by mount point, from /proc/mounts lines. */
+internal fun systemMountSources(mounts: List<String>): Map<String, String> = mounts
+    .map { it.split(" ") }
+    .filter { it.size >= 2 && it[1] in SYSTEM_MOUNT_POINTS && it[0].startsWith("/dev/") }
+    .associate { it[1] to it[0] }
+
+// Devices without AVB or legacy verity set no verity property; dm-verity always sits on device-mapper.
+private fun verityFromMounts(details: String): CheckResult {
+    val sources = systemMountSources(runCatching { File("/proc/self/mounts").readLines() }.getOrDefault(emptyList()))
+    val text = details + "\n" + sources.entries.joinToString("\n") { "${it.key} <- ${it.value}" }
+    return when {
+        sources.isEmpty() -> warn("Verity state is not exposed and the system mounts are unreadable", text)
+        sources.values.any { it.startsWith("/dev/block/dm-") } -> warn("System is on device-mapper but no verity state is exposed", text)
+        else -> pass("No dm-verity: the system partitions mount straight from their block devices", text)
+    }
 }

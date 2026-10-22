@@ -6,7 +6,7 @@ val CHECK_HOW: Map<String, List<String>> = mapOf(
     "selinux" to listOf("Reads /sys/fs/selinux/enforce as the app", "If that is denied, runs getenforce through Shizuku"),
     "su.absent" to listOf("Looks for su in the usual system paths and on PATH"),
     "binder.64bit" to listOf("Checks for a 64-bit userspace", "On 32-bit devices, reads CONFIG_ANDROID_BINDER_IPC_32BIT from /proc/config.gz"),
-    "verity" to listOf("Reads ro.boot.veritymode, verifiedbootstate and vbmeta device state"),
+    "verity" to listOf("Reads ro.boot.veritymode, verifiedbootstate and vbmeta device state", "When none is set, checks whether the system partitions mount from device-mapper"),
     "crypto.status" to listOf("Asks DevicePolicyManager for the storage encryption status", "Reads ro.crypto.state and ro.crypto.type"),
     "keystore.hardware" to listOf("Generates a throwaway AES key in AndroidKeyStore", "Reads its security level (TEE or StrongBox), then deletes it"),
     "build.fingerprint" to listOf("Compares Build.FINGERPRINT with the running Android version and build type", "Lists the system, vendor, product and odm fingerprints"),
