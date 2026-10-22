@@ -30,7 +30,12 @@
     "stockHasHardwareEncryption": true,
     "stockWidthPx": 1080,
     "stockHeightPx": 1920,
-    "stockDensityDpi": 420
+    "stockDensityDpi": 420,
+    "stockSimSlots": 1,
+    "stockHasEsim": false,
+    "stockHasVolte": true,
+    "stockHasWifiCalling": true,
+    "stockHasWakeGestures": false
   },
   "tests": [
     {
@@ -71,6 +76,11 @@
         "network.trafficstats"
       ],
       "reason": "Kernel 3.10 has no eBPF, which Android 13 traffic accounting needs. Data usage counters cannot work on this kernel."
+    },
+    {
+      "requirement": "sw.kernel.wakegestures",
+      "checks": [],
+      "reason": "Kept on /e/OS on purpose: the software double-tap-to-wake driver ships off by default and is only turned on by the user."
     }
   ],
   "theme": {

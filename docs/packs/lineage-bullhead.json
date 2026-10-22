@@ -30,7 +30,12 @@
     "stockHasHardwareEncryption": true,
     "stockWidthPx": 1080,
     "stockHeightPx": 1920,
-    "stockDensityDpi": 420
+    "stockDensityDpi": 420,
+    "stockSimSlots": 1,
+    "stockHasEsim": false,
+    "stockHasVolte": true,
+    "stockHasWifiCalling": true,
+    "stockHasWakeGestures": false
   },
   "tests": [
     {
