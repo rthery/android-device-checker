@@ -40,6 +40,7 @@ import io.github.rthery.devicechecker.R
 import androidx.compose.ui.unit.dp
 import io.github.rthery.devicechecker.checks.CheckStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -371,6 +372,44 @@ internal suspend fun record(audio: AudioManager, device: AudioDeviceInfo, onLeve
     val peak = body.maxOfOrNull { abs(it.toInt()) }?.coerceAtLeast(1) ?: 1
     val rms = sqrt(body.sumOf { it.toDouble() * it } / body.size.coerceAtLeast(1)).coerceAtLeast(1.0)
     Recording(20 * log10(rms / Short.MAX_VALUE), 20 * log10(peak.toDouble() / Short.MAX_VALUE), firstReadMs, samples, activeMic)
+}
+
+private val LOOPBACK_NOISE_HZ = listOf(600.0, 1_200.0, 1_500.0)
+private const val LOOPBACK_TONE_DELAY_MS = 400L
+internal const val LOOPBACK_MIN_SNR_DB = 15.0
+
+/** Goertzel power of one frequency, in dB relative to full scale. */
+internal fun powerDb(samples: List<Short>, hz: Double, sampleRate: Int = SAMPLE_RATE): Double {
+    val coefficient = 2 * kotlin.math.cos(2 * PI * hz / sampleRate)
+    var previous = 0.0
+    var beforePrevious = 0.0
+    samples.forEach { sample ->
+        val current = sample / Short.MAX_VALUE.toDouble() + coefficient * previous - beforePrevious
+        beforePrevious = previous
+        previous = current
+    }
+    val power = previous * previous + beforePrevious * beforePrevious - coefficient * previous * beforePrevious
+    return 10 * log10((power / samples.size).coerceAtLeast(1e-12))
+}
+
+internal fun loopbackNoiseDb(samples: List<Short>) = LOOPBACK_NOISE_HZ.map { powerDb(samples, it) }.average()
+
+internal fun loopbackSnrDb(samples: List<Short>) = powerDb(samples, TONE_HZ) - loopbackNoiseDb(samples)
+
+internal class Loopback(val recording: Recording, val toneDb: Double, val noiseDb: Double) {
+    val snrDb get() = toneDb - noiseDb
+    val heard get() = snrDb >= LOOPBACK_MIN_SNR_DB
+    fun describe() = "tone ${"%.1f".format(snrDb)} dB above the neighbouring bands, ${recording.describe()}"
+}
+
+/** Plays the test tone on [output] while [input] records, then measures the tone against nearby frequencies. */
+internal suspend fun loopback(audio: AudioManager, output: AudioDeviceInfo, input: AudioDeviceInfo): Loopback = kotlinx.coroutines.coroutineScope {
+    val recording = async { record(audio, input) {} }
+    delay(LOOPBACK_TONE_DELAY_MS)
+    playTone(audio, output)
+    val result = recording.await()
+    val body = result.samples.drop(SAMPLE_RATE * SKIP_START_MS / 1000)
+    Loopback(result, powerDb(body, TONE_HZ), loopbackNoiseDb(body))
 }
 
 private suspend fun playBack(samples: ShortArray) = withContext(Dispatchers.IO) {

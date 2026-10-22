@@ -11,6 +11,7 @@ import android.hardware.SensorManager
 import android.hardware.TriggerEvent
 import android.hardware.TriggerEventListener
 import android.Manifest
+import android.os.Build
 import io.github.rthery.devicechecker.checks.isGestureSensor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -143,7 +144,8 @@ private fun gestureInstruction(type: String): Int = when (type) {
 
 @Composable
 private fun GestureSensorTest(scope: TestScope) {
-    RequirePermissions(listOf(Manifest.permission.ACTIVITY_RECOGNITION), stringResource(R.string.hw_gesture_permission)) {
+    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) listOf(Manifest.permission.ACTIVITY_RECOGNITION) else emptyList()
+    RequirePermissions(permissions, stringResource(R.string.hw_gesture_permission)) {
         GestureSensorContent(scope)
     }
 }

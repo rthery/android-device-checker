@@ -36,7 +36,9 @@ class LlmInterfaceTest {
         val catalog = buildCatalog(tests, "/sdcard/reports")
         assertEquals(tests.size, catalog.tests.size)
         assertTrue(catalog.tests.all { it.setResult.contains("--es test ${it.id}") })
-        assertTrue(catalog.tests.filter { it.kind == "AUTO" }.all { it.run?.contains("RUN_CHECKS") == true })
+        val foreground = HeadlessRegistry.byId.keys
+        assertTrue(catalog.tests.filter { it.kind == "AUTO" && it.id !in foreground }.all { it.run?.contains("RUN_CHECKS") == true })
+        assertTrue(catalog.tests.filter { it.id in foreground }.all { it.run?.contains("--es run ${it.id}") == true })
         val photo = catalog.tests.single { it.id == "camera.capture" }
         assertTrue(photo.headless && photo.needsHuman)
         assertTrue(photo.run!!.contains("--es run camera.capture"))

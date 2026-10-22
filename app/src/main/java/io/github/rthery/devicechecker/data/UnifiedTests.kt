@@ -11,6 +11,7 @@ import io.github.rthery.devicechecker.catalog.TestMode
 import io.github.rthery.devicechecker.checks.CHECK_HOW
 import io.github.rthery.devicechecker.checks.Check
 import io.github.rthery.devicechecker.checks.CheckRegistry
+import io.github.rthery.devicechecker.interactive.HeadlessRegistry
 import io.github.rthery.devicechecker.interactive.InteractiveTest
 import io.github.rthery.devicechecker.interactive.TestRegistry
 import io.github.rthery.devicechecker.pack.DevicePack
@@ -164,7 +165,11 @@ class TestCatalog(val packs: List<DevicePack> = emptyList()) {
         }
         val tests = interactive.map { test ->
             val covered = requirements.filter { test.id in it.testIds }
-            val kind = if (test.manual) TestKind.MANUAL else TestKind.GUIDED
+            val kind = when {
+                test.id in HeadlessRegistry.quickIds -> TestKind.AUTO
+                test.manual -> TestKind.MANUAL
+                else -> TestKind.GUIDED
+            }
             UnifiedTest(test.id, test.title, kind, categoryOf(covered), covered, content.how[test.id] ?: listOf(test.summary), test.source)
         }
         val requirementOnly = builtInRequirements.filter { it.checkIds.isEmpty() && it.testIds.isEmpty() }.map { requirement ->

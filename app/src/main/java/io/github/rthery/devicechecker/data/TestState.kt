@@ -26,7 +26,7 @@ private val functionalConfirmation = mapOf(
     "wifi.present" to "network.wifi", "bluetooth.present" to "bluetooth.scan",
     "gnss.present" to "gnss.fix", "nfc.present" to "nfc.tag",
     "fingerprint.present" to "fingerprint.auth", "ir.present" to "ir.transmit",
-    "camera.list" to "camera.capture", "audio.devices" to "audio.output",
+    "camera.list" to "camera.capture", "audio.devices" to "audio.loopback",
 )
 
 fun stateOf(

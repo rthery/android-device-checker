@@ -9,10 +9,14 @@ import android.location.GnssStatus
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.telephony.TelephonyManager
+import android.telephony.euicc.EuiccManager
 import io.github.rthery.devicechecker.checks.Check
 import io.github.rthery.devicechecker.checks.CheckContext
 import io.github.rthery.devicechecker.checks.CheckResult
@@ -57,11 +61,55 @@ val headlessTests = listOf(
     Check("bluetooth.scan", "Bluetooth scan") { bluetoothHeadless() },
     Check("gnss.fix", "GPS fix") { gnssHeadless() },
     Check("integrity.basic", "Play Integrity basic") { integrityHeadless() },
+    Check("microg.selfcheck", "microG self-check") { microgSelfCheckHeadless() },
+    Check("privacy.dashboard", "Advanced Privacy") { privacyDashboardHeadless() },
+    Check("display.extradim", "Extra Dim and color modes") { extraDimHeadless() },
+)
+
+/**
+ * Settles a guided test as not applicable from the profile or the device, without opening it.
+ * Returns null when the test applies, so a tester's earlier result is kept.
+ */
+class Applicability(val id: String, val decide: suspend CheckContext.() -> CheckResult?)
+
+private val applicabilityRules = listOf(
+    Applicability("fm.radio") { if (!profile.stockHasFmRadio) notApplicable("Stock has no FM radio") else null },
+    Applicability("sd.adoptable") { if (!profile.stockHasSdSlot) notApplicable("Stock has no SD card slot") else null },
+    Applicability("ir.transmit") { if (!profile.stockHasIrBlaster) notApplicable("Stock has no IR blaster") else null },
+    Applicability("nfc.tag") { if (!profile.stockHasNfc) notApplicable("Stock has no NFC") else null },
+    Applicability("sim.multi") {
+        val telephony = context.getSystemService(TelephonyManager::class.java)
+        @Suppress("DEPRECATION")
+        val deviceSlots = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) telephony.supportedModemCount else telephony.phoneCount
+        val slots = profile.stockSimSlots ?: deviceSlots
+        if (!profile.stockHasTelephony) notApplicable("Stock has no RIL")
+        else if (slots <= 1 && !profile.stockHasEsim) notApplicable("Stock has one SIM slot and no eSIM")
+        else null
+    },
+    Applicability("ims.calls") {
+        if (!profile.stockHasTelephony) return@Applicability notApplicable("Stock has no RIL")
+        if (profile.stockHasVolte == false && profile.stockHasWifiCalling == false) return@Applicability notApplicable("Stock declares neither VoLTE nor Wi-Fi calling")
+        val config = execPrivileged("dumpsys carrier_config | grep -E 'carrier_(volte|wfc_ims)_available_bool' | sort -u")?.output ?: return@Applicability null
+        if (config.isBlank() || "true" in config) null
+        else warn(
+            "This SIM's carrier configuration enables neither VoLTE nor Wi-Fi calling, so IMS cannot be tested with it",
+            "The device supports IMS (stock VoLTE ${profile.stockHasVolte ?: "unknown"}, Wi-Fi calling ${profile.stockHasWifiCalling ?: "unknown"}). " +
+                "Use a SIM from a carrier listed in the device's CarrierConfig with IMS enabled.\n${config.trim()}",
+        )
+    },
 )
 
 object HeadlessRegistry {
     val all: List<Check> = headlessTests
+
+    /** Short tests the app runs in its normal automatic run; long stress and GPS runs stay separate. */
+    val quickIds = setOf(
+        "camera.capture", "video.record", "audio.input", "bluetooth.scan",
+        "integrity.basic", "microg.selfcheck", "privacy.dashboard", "display.extradim",
+    )
+    val quick: List<Check> = all.filter { it.id in quickIds }
     val byId: Map<String, Check> = all.associateBy { it.id }
+    val applicability: List<Applicability> = applicabilityRules
 }
 
 private suspend fun CheckContext.preflight(testId: String, permissions: List<String>): CheckResult? {
@@ -168,33 +216,59 @@ private fun summarize(lines: List<Pair<CheckStatus, String>>, passSummary: Strin
     }
 }
 
+/** Every built-in microphone records the speaker's test tone; recordings are kept for review. */
 private suspend fun CheckContext.micsHeadless(): CheckResult {
     preflight("audio.input", listOf(Manifest.permission.RECORD_AUDIO))?.let { return it }
     val audio = context.getSystemService(AudioManager::class.java)
     val devices = audio.getDevices(AudioManager.GET_DEVICES_INPUTS).filter { it.type in TESTABLE_INPUTS }
     if (devices.isEmpty()) return fail("No microphone exposed")
+    val speaker = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+        ?: return warn("No built-in speaker to play the test tone")
     val dir = artifactsFor("audio.input")
     val artifacts = mutableListOf<String>()
     val lines = devices.mapIndexed { index, device ->
-        val recording = record(audio, device) {}
+        val heard = loopback(audio, speaker, device)
         if (dir != null) {
             val file = File(dir, "mic$index-${device.label().replace(Regex("[^A-Za-z0-9]+"), "_").lowercase()}.wav")
-            writeWav(file, recording.samples)
+            writeWav(file, heard.recording.samples)
             artifacts += relative(file)
         }
         val status = when {
-            recording.slowStart -> CheckStatus.FAIL
-            !recording.hasSignal -> CheckStatus.WARN
-            else -> CheckStatus.INFO
+            heard.recording.slowStart -> CheckStatus.FAIL
+            !heard.heard -> CheckStatus.FAIL
+            else -> CheckStatus.PASS
         }
-        status to "${device.label()}: ${recording.describe()}"
+        status to "${device.label()}: ${heard.describe()}"
     }
     val details = lines.joinToString("\n") { "${it.first.name}: ${it.second}" }
     return when {
-        lines.any { it.first == CheckStatus.FAIL } -> fail("A microphone took too long to deliver its first buffer", details)
-        lines.any { it.first == CheckStatus.WARN } -> warn("A microphone recorded almost nothing. Speak during the test and run again.", details)
-        else -> info("${lines.size} recording(s) saved. Listen to them, then set the verdict.", details)
+        lines.any { it.second.contains("first buffer") && it.first == CheckStatus.FAIL && devices.isNotEmpty() && lines.none { l -> l.first == CheckStatus.PASS } } ->
+            fail("No microphone heard the speaker's test tone", details)
+        lines.any { it.first == CheckStatus.FAIL } -> fail("${lines.count { it.first == CheckStatus.FAIL }} microphone(s) did not hear the test tone or started too slowly", details)
+        else -> pass("Every microphone (${lines.size}) hears the speaker's test tone", details)
     }.copy(artifacts = artifacts)
+}
+
+/** Speaker and earpiece play the test tone and a built-in microphone must pick it up. */
+internal val audioLoopbackCheck = Check("audio.loopback", "Speaker and earpiece") { outputsLoopbackHeadless() }
+
+private suspend fun CheckContext.outputsLoopbackHeadless(): CheckResult {
+    preflight("audio.loopback", listOf(Manifest.permission.RECORD_AUDIO))?.let { return it }
+    val audio = context.getSystemService(AudioManager::class.java)
+    val outputs = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        .filter { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER || it.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE }
+        .distinctBy { it.type }
+    if (outputs.isEmpty()) return fail("No built-in speaker or earpiece exposed")
+    val mics = audio.getDevices(AudioManager.GET_DEVICES_INPUTS).filter { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+    if (mics.isEmpty()) return fail("No built-in microphone to listen with")
+    val lines = outputs.map { output ->
+        val best = mics.map { mic -> mic to loopback(audio, output, mic) }.maxBy { it.second.snrDb }
+        val status = if (best.second.heard) CheckStatus.PASS else CheckStatus.FAIL
+        status to "${output.label()} heard by ${best.first.label()}: ${best.second.describe()}"
+    }
+    val details = lines.joinToString("\n") { "${it.first.name}: ${it.second}" }
+    return if (lines.any { it.first == CheckStatus.FAIL }) fail("A built-in output was not heard by any microphone", details)
+    else pass("${outputs.joinToString(" and ") { it.label() }} play the test tone", details)
 }
 
 /** 16-bit mono PCM WAV. */

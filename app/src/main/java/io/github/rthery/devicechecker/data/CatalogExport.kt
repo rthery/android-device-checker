@@ -10,7 +10,7 @@ private const val RECEIVER = "adb shell am broadcast -n $PACKAGE/.AdbCommandRece
 private const val ACTIVITY = "adb shell am start -n $PACKAGE/.AdbLinkActivity"
 
 /** Headless tests that still need a person or an agent to judge the files they leave. */
-private val NEEDS_JUDGEMENT = setOf("camera.capture", "video.record", "audio.input")
+private val NEEDS_JUDGEMENT = setOf("camera.capture", "video.record")
 
 @Serializable
 data class CatalogRequirement(val id: String, val level: String, val text: String)
@@ -99,8 +99,8 @@ fun buildCatalog(tests: List<UnifiedTest>, reportsDir: String): Catalog {
                 how = test.how,
                 requirements = test.requirements.map { CatalogRequirement(it.id, it.level.label, it.text) },
                 run = when {
-                    test.kind == TestKind.AUTO -> "$RECEIVER.RUN_CHECKS --es ids ${test.id}"
                     test.id in headless -> "$ACTIVITY --es run ${test.id}"
+                    test.kind == TestKind.AUTO -> "$RECEIVER.RUN_CHECKS --es ids ${test.id}"
                     else -> null
                 },
                 open = if (test.kind == TestKind.GUIDED || (test.kind == TestKind.MANUAL && !test.isRequirementOnly)) "$ACTIVITY --es test ${test.id}" else null,

@@ -36,4 +36,14 @@ data class DeviceProfile(
     val stockBluetoothCodecs: List<String> = emptyList(),
     /** Battery design capacity in mAh, as stock reports it or as the OEM spec sheet gives it. */
     val stockBatteryDesignMah: Int? = null,
+    /** Physical SIM slots on stock; null when not captured. */
+    val stockSimSlots: Int? = null,
+    val stockHasEsim: Boolean = false,
+    /** Device-level IMS support declared by stock (framework config), whatever the carrier enables. */
+    val stockHasVolte: Boolean? = null,
+    val stockHasWifiCalling: Boolean? = null,
+    /** True when the stock touchscreen firmware offers wake gestures (double tap, sweep). */
+    val stockHasWakeGestures: Boolean = false,
+    /** True when the OEM sold proprietary accessories for this device (dock, keyboard cover, stylus). */
+    val stockHasAccessories: Boolean = false,
 )

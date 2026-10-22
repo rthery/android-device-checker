@@ -41,7 +41,7 @@ private const val POLL_MS = 2_000L
 private const val SCREEN_TIMEOUT_MS = 15_000L
 private const val VERDICT_TIMEOUT_MS = 60_000L
 
-data class UiNode(val resourceId: String, val text: String, val description: String, val bounds: List<Int>?) {
+data class UiNode(val resourceId: String, val text: String, val description: String, val bounds: List<Int>?, val checked: Boolean = false) {
     val center: Pair<Int, Int>? get() = bounds?.let { (left, top, right, bottom) -> (left + right) / 2 to (top + bottom) / 2 }
 }
 
@@ -69,6 +69,7 @@ fun parseUiDump(xml: String): List<UiNode> = NODE.findAll(xml).map { node ->
         text = attributes["text"].orEmpty(),
         description = attributes["content-desc"].orEmpty(),
         bounds = attributes["bounds"]?.let { BOUNDS.matchEntire(it) }?.groupValues?.drop(1)?.map(String::toInt),
+        checked = attributes["checked"] == "true",
     )
 }.toList()
 
@@ -160,14 +161,14 @@ suspend fun runIntegrityCheck(shell: Shell, returnComponent: String?, log: (Stri
     }
 }
 
-private suspend fun Shell.dumpUi(): List<UiNode> {
+internal suspend fun Shell.dumpUi(): List<UiNode> {
     exec("input keyevent KEYCODE_WAKEUP")
     return parseUiDump(exec("uiautomator dump $UI_DUMP >/dev/null && cat $UI_DUMP").output)
 }
 
-private suspend fun Shell.tap(node: UiNode): ShellOutput? = node.center?.let { (x, y) -> exec("input tap $x $y") }
+internal suspend fun Shell.tap(node: UiNode): ShellOutput? = node.center?.let { (x, y) -> exec("input tap $x $y") }
 
-private suspend fun Shell.waitFor(timeoutMs: Long, found: (List<UiNode>) -> Boolean): List<UiNode>? {
+internal suspend fun Shell.waitFor(timeoutMs: Long, found: (List<UiNode>) -> Boolean): List<UiNode>? {
     var waited = 0L
     while (waited <= timeoutMs) {
         val nodes = dumpUi()

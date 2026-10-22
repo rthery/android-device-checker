@@ -26,9 +26,9 @@ object RequirementCatalog {
         Requirement("general.exceptions", Section.GENERAL, MUST, "Any granted exception is documented on the wiki for every affected device.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
         Requirement("qa.factoryreset", Section.GENERAL, SHOULD, "Factory reset wipes the device and boots back to setup.", MANUAL, testIds = listOf("factory.reset")),
 
-        Requirement("hw.audio.media", Section.AUDIO, MUST, "Media playback works.", INTERACTIVE, listOf("audio.devices"), listOf("audio.output", "audio.stress")),
-        Requirement("hw.audio.incall", Section.AUDIO, MUST, "Phones (and tablets that can) support in-call audio and speakerphone.", INTERACTIVE, listOf("audio.devices"), listOf("audio.output", "call.audio")),
-        Requirement("hw.audio.extras", Section.AUDIO, SHOULD, "Inherent audio features such as echo cancellation and extra microphones work.", ASSISTED, listOf("audio.effects"), listOf("audio.input")),
+        Requirement("hw.audio.media", Section.AUDIO, MUST, "Media playback works.", INTERACTIVE, listOf("audio.devices", "audio.loopback"), listOf("audio.stress")),
+        Requirement("hw.audio.incall", Section.AUDIO, MUST, "Phones (and tablets that can) support in-call audio and speakerphone.", INTERACTIVE, listOf("audio.devices", "audio.loopback"), listOf("call.audio")),
+        Requirement("hw.audio.extras", Section.AUDIO, SHOULD, "Inherent audio features such as echo cancellation and extra microphones work.", INTERACTIVE, listOf("audio.effects"), listOf("audio.input")),
         Requirement("hw.audio.outputs", Section.AUDIO, MUST, "Every stock audio output works (headphone jack, USB-C audio, Bluetooth).", INTERACTIVE, testIds = listOf("audio.output")),
         Requirement("hw.audio.fm", Section.AUDIO, SHOULD, "FM radio works if stock has it.", MANUAL, testIds = listOf("fm.radio")),
 
@@ -78,7 +78,7 @@ object RequirementCatalog {
 
         Requirement("hw.display.resolution", Section.DISPLAY, MUST, "Built-in displays run at stock resolution.", AUTOMATED, listOf("display.resolution")),
         Requirement("hw.display.density", Section.DISPLAY, SHOULD, "Built-in displays use stock density.", AUTOMATED, listOf("display.density")),
-        Requirement("hw.display.external", Section.DISPLAY, MUST, "Devices without a built-in display support their outputs (for example HDMI).", MANUAL),
+        Requirement("hw.display.external", Section.DISPLAY, MUST, "Devices without a built-in display support their outputs (for example HDMI).", INTERACTIVE, listOf("display.builtin")),
         Requirement(
             "hw.display.extra", Section.DISPLAY, SHOULD,
             "Extra non-USB display interfaces, USB display out and HDR10 playback work if stock supports them.",
@@ -106,7 +106,7 @@ object RequirementCatalog {
         Requirement("qa.charging.offmode", Section.BATTERY, SHOULD, "Off-mode charging shows the battery state while the device is off.", INTERACTIVE, testIds = listOf("charging.offmode")),
         Requirement("qa.charging.cables", Section.BATTERY, SHOULD, "Charging works with USB-A to C and C to C cables.", INTERACTIVE, testIds = listOf("charging.cables")),
 
-        Requirement("hw.accessories", Section.ACCESSORIES, SHOULD, "Proprietary accessories work.", MANUAL),
+        Requirement("hw.accessories", Section.ACCESSORIES, SHOULD, "Proprietary accessories work.", INTERACTIVE, listOf("accessories")),
         Requirement("hw.deviations", Section.ACCESSORIES, MUST, "Every hardware deviation from stock is documented on the wiki with a justification.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
 
         Requirement("sw.tree.codename", Section.DEVICE_TREE, MUST, "The codename is unique among officially supported devices.", OUT_OF_SCOPE, rom = Rom.LINEAGE),
@@ -117,7 +117,7 @@ object RequirementCatalog {
         Requirement("sw.pie", Section.DEVICE_TREE, MUST_NOT, "No non-PIE binaries are used.", OUT_OF_SCOPE),
 
         Requirement("sw.kernel.prebuilt", Section.KERNEL, MUST_NOT, "Non-GKI devices do not ship a prebuilt kernel. GKI devices build every feasible module from source.", OUT_OF_SCOPE),
-        Requirement("sw.kernel.wakegestures", Section.KERNEL, MUST_NOT, "No software wake gestures without touchscreen firmware support (software double-tap is fine when firmware supports single-tap).", MANUAL),
+        Requirement("sw.kernel.wakegestures", Section.KERNEL, MUST_NOT, "No software wake gestures without touchscreen firmware support (software double-tap is fine when firmware supports single-tap).", AUTOMATED, listOf("kernel.wakegestures")),
         Requirement("sw.kernel.fastcharge", Section.KERNEL, MUST_NOT, "No forced fast charging that violates the USB specification.", AUTOMATED, listOf("charging.usb")),
         Requirement("sw.kernel.clocks", Section.KERNEL, MUST, "CPU and GPU clocks and voltages match stock binning or SoC vendor documentation.", ASSISTED, listOf("kernel.clocks")),
         Requirement("sw.kernel.registers", Section.KERNEL, MUST_NOT, "No hardware register manipulation that stock does not do.", OUT_OF_SCOPE),
@@ -138,7 +138,7 @@ object RequirementCatalog {
 
         Requirement("sw.selinux", Section.SECURITY, MUST, "SELinux is Enforcing.", AUTOMATED, listOf("selinux", "selinux.denials")),
         Requirement("sw.verity.system", Section.SECURITY, MUST, "Verity is disabled on the system image for userdebug builds.", AUTOMATED, listOf("verity")),
-        Requirement("sw.verity.vendor", Section.SECURITY, SHOULD, "Vendor verity is supported.", MANUAL),
+        Requirement("sw.verity.vendor", Section.SECURITY, SHOULD, "Vendor verity is supported.", AUTOMATED, listOf("verity.vendor")),
         Requirement("sw.su", Section.SECURITY, MUST_NOT, "The build does not ship su.", AUTOMATED, listOf("su.absent")),
         Requirement("sw.frp", Section.SECURITY, SHOULD, "Factory Reset Protection works with Google apps installed, if stock supports FRP.", ASSISTED, listOf("frp")),
         Requirement("sw.playintegrity", Section.SECURITY, MUST_NOT, "Play Integrity responses are not altered.", ASSISTED, listOf("build.fingerprint")),
@@ -166,7 +166,7 @@ object RequirementCatalog {
         Requirement("sw.vendor.assert", Section.VENDOR, MUST, "Non-A/B devices with a vendor partition assert vendor versions at flash time.", OUT_OF_SCOPE),
         Requirement("sw.vendor.ab", Section.VENDOR, MUST, "A/B devices with a vendor partition build a vendor image or document firmware and slot sync on the wiki.", OUT_OF_SCOPE),
         Requirement("sw.vendor.modified", Section.VENDOR, MUST_NOT, "Modified prebuilt vendor images are not required.", OUT_OF_SCOPE),
-        Requirement("sw.vendor.gsi", Section.VENDOR, SHOULD, "Treble devices verify basic hardware with an AOSP GSI.", MANUAL),
+        Requirement("sw.vendor.gsi", Section.VENDOR, SHOULD, "Treble devices verify basic hardware with an AOSP GSI.", INTERACTIVE, listOf("treble.gsi")),
 
         Requirement("sw.livedisplay", Section.FEATURES, SHOULD, "In-kernel LiveDisplay color adjustment is supported.", AUTOMATED, listOf("livedisplay"), lineageOnly = true),
         Requirement("sw.browser", Section.FEATURES, MUST, "Jelly or another LineageOS-sourced browser ships.", AUTOMATED, listOf("browser.jelly"), rom = Rom.LINEAGE),

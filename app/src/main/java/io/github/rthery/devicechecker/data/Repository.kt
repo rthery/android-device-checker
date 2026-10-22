@@ -191,7 +191,7 @@ class Repository private constructor(context: Context) {
         writeStatus("running", "starting")
         ShizukuShell.awaitReady()
         val context = CheckContext(appContext, _profile.value, ShizukuShell.takeIf { it.isReady }, DeviceInfo.detectRom(appContext), reportsDir, options, _stock.value)
-        val selected = if (ids == null) _catalog.value.checks
+        val selected = if (ids == null) _catalog.value.checks + HeadlessRegistry.quick
         else (_catalog.value.checks + HeadlessRegistry.all).filter { it.id in ids }.distinctBy { it.id }
         val kept = if (keepTesterResults) testerMarkedIds(selected.map { it.id }, _results.value) else emptySet()
         if (kept.isNotEmpty()) Log.i(TAG, "Keeping tester results: ${kept.joinToString()}")
@@ -219,6 +219,7 @@ class Repository private constructor(context: Context) {
                 _results.update { it + (check.id to result) }
                 ran++
             }
+            if (ids == null) settleApplicability(context)
         } catch (e: CancellationException) {
             stopped = true
             throw e
@@ -231,6 +232,16 @@ class Repository private constructor(context: Context) {
                 exportReports(snapshot = true)
                 writeStatus(if (stopped) "stopped" else "done", "$ran/${checks.size} checks")
             }
+        }
+    }
+
+    /** Stores N/A for guided tests the profile or the device rules out; applicable ones keep their result. */
+    private suspend fun settleApplicability(context: CheckContext) {
+        HeadlessRegistry.applicability.forEach { rule ->
+            if (_results.value[rule.id]?.byTester == true) return@forEach
+            val result = runCatching { rule.decide(context) }.getOrNull() ?: return@forEach
+            Log.i(TAG, "${rule.id}: ${result.status} ${result.summary}")
+            _results.update { it + (rule.id to result.copy(timestamp = System.currentTimeMillis())) }
         }
     }
 

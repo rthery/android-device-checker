@@ -1,5 +1,9 @@
 package io.github.rthery.devicechecker.data
 
+import io.github.rthery.devicechecker.checks.SOFTWARE_WAKE_GESTURE_DIRS
+import java.io.File
+import android.telephony.TelephonyManager
+import android.content.res.Resources
 import android.app.admin.DevicePolicyManager
 import android.content.pm.PackageManager
 import android.hardware.ConsumerIrManager
@@ -128,6 +132,12 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
     }
 
     val encryption = context.getSystemService(DevicePolicyManager::class.java).storageEncryptionStatus
+    val telephony = context.getSystemService(TelephonyManager::class.java)
+    @Suppress("DEPRECATION")
+    val simSlots = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) telephony.supportedModemCount else telephony.phoneCount
+    fun frameworkBool(name: String): Boolean? = Resources.getSystem().getIdentifier(name, "bool", "android")
+        .takeIf { it != 0 }?.let { Resources.getSystem().getBoolean(it) }
+    val wakeGestures = SOFTWARE_WAKE_GESTURE_DIRS.any { File(it).exists() }
     val removable = context.getSystemService(StorageManager::class.java).storageVolumes.any { it.isRemovable }
 
     val profile = DeviceProfile(
@@ -146,7 +156,8 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
         stockFrontCameraCount = sensorCount(CameraCharacteristics.LENS_FACING_FRONT),
         stockHasHdr10 = Display.HdrCapabilities.HDR_TYPE_HDR10 in hdrTypes,
         stockHasExfat = filesystems.lines().any { it.trim().endsWith("exfat") },
-        stockHasForcedEncryption = encryption != DevicePolicyManager.ENCRYPTION_STATUS_INACTIVE && encryption != DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED,
+        stockHasForcedEncryption = props["ro.crypto.state"] == "encrypted" ||
+            (encryption != DevicePolicyManager.ENCRYPTION_STATUS_INACTIVE && encryption != DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED),
         stockHasHardwareEncryption = props["ro.crypto.type"] != null,
         stockHasFrp = props["ro.frp.pst"] != null,
         stockWidthPx = minOf(mode.physicalWidth, mode.physicalHeight),
@@ -156,6 +167,11 @@ suspend fun CheckContext.captureStock(): StockSnapshot {
         stockBluetoothMac = btMac,
         stockBluetoothCodecs = btCodecs,
         stockBatteryDesignMah = batteryDesign,
+        stockSimSlots = simSlots.takeIf { pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY) },
+        stockHasEsim = pm.hasSystemFeature("android.hardware.telephony.euicc"),
+        stockHasVolte = frameworkBool("config_device_volte_available"),
+        stockHasWifiCalling = frameworkBool("config_device_wfc_ims_available"),
+        stockHasWakeGestures = wakeGestures,
     )
 
     return StockSnapshot(
