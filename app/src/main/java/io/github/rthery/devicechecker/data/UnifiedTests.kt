@@ -35,7 +35,7 @@ enum class Category(val title: String, @StringRes val titleRes: Int) {
     HARDWARE("Display, sensors and storage", R.string.tests_category_hardware),
     SYSTEM("System and stability", R.string.tests_category_system),
     UPDATES("Updates and recovery", R.string.tests_category_updates),
-    OFF_DEVICE("Not testable on the phone", R.string.tests_category_off_device),
+    OFF_DEVICE("Source and project review", R.string.tests_category_off_device),
 }
 
 fun Section.category(): Category = when (this) {

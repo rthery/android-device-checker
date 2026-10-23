@@ -9,7 +9,7 @@ private val OUTCOME_CLASS = mapOf(
 private val OUTCOME_LABEL = mapOf(
     Outcome.PASS to "Met", Outcome.FAIL to "Not met", Outcome.WARN to "To check", Outcome.NEEDS_SHELL to "Needs Shizuku",
     Outcome.TO_VERIFY to "Needs you", Outcome.UNTESTED to "Not tested", Outcome.NOT_APPLICABLE to "N/A",
-    Outcome.WAIVED to "Waived", Outcome.NOT_ON_DEVICE to "Off-device",
+    Outcome.WAIVED to "Waived", Outcome.NOT_ON_DEVICE to "Source review",
 )
 
 private val STYLE = """

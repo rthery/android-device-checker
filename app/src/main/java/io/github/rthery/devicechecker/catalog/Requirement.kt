@@ -27,7 +27,7 @@ enum class TestMode(val label: String) {
     MANUAL("Manual"),
 
     /** About the source tree, the wiki or the maintainer, not the running build. */
-    OUT_OF_SCOPE("Not on device"),
+    OUT_OF_SCOPE("Source review"),
 }
 
 enum class Section(val title: String) {

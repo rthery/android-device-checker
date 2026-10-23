@@ -25,7 +25,7 @@
     <string name="tests_kind_auto">Automatic</string>
     <string name="tests_kind_guided">Guided</string>
     <string name="tests_kind_manual">Manual</string>
-    <string name="tests_kind_off_device">Off-device</string>
+    <string name="tests_kind_off_device">Source review</string>
 
     <string name="tests_category_security">Security and build</string>
     <string name="tests_category_kernel">Kernel</string>
@@ -35,7 +35,7 @@
     <string name="tests_category_hardware">Display, sensors and storage</string>
     <string name="tests_category_system">System and stability</string>
     <string name="tests_category_updates">Updates and recovery</string>
-    <string name="tests_category_off_device">Not testable on the phone</string>
+    <string name="tests_category_off_device">Source and project review</string>
 
 
     <plurals name="tests_summary_failed">

@@ -16,7 +16,7 @@ enum class Outcome(val label: String) {
     UNTESTED("Untested"),
     NOT_APPLICABLE("N/A"),
     WAIVED("Waived"),
-    NOT_ON_DEVICE("Not on device"),
+    NOT_ON_DEVICE("Source review"),
 }
 
 /**

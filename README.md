@@ -16,7 +16,7 @@ Each requirement has a test mode:
 - Assisted: the app gathers data (clocks, charging current, Bluetooth codecs, sensor list) and you compare it with stock.
 - Interactive: an in-app test does the work and asks at most a yes/no (tones per audio output, mic levels, a photo per camera, video clips, GPS fix, NFC tag, fingerprint, Bluetooth scan, sensor reactions, IR).
 - Manual: a guided step list with buttons that open the right settings screen or run the action through Shizuku (USB mode, tethering state, reboot to recovery).
-- Not on device: source tree, wiki and maintainer items, listed so the checklist is complete.
+- Source and project review: source tree, wiki and maintainer items, listed so the checklist is complete.
 
 The app groups related checks and actions into entries such as Wi-Fi, Cameras and Microphones. Open an entry to run its automatic checks or start an individual guided test. Categories remember whether they are collapsed, including after restarting the app, and their headers show counts for every result state. Individual tests retain their requirement level (MUST, SHOULD), result and action button. The priority filter selects required (MUST / MUST NOT), recommended (SHOULD / SHOULD NOT) or optional (MAY) tests and also limits the bulk automatic run. Tests covering several requirements use their strongest level. A test's details show the requirement it covers, what the app does, and the raw output of the last run. A test runs once and its result counts for every requirement it covers. A tester can mark any test passed, failed or not applicable. Bulk runs (Run all, an entry's automatic checks, and `checks`, `headless` or `all` over adb) leave tester-marked tests alone; run the test by itself or name its id to replace the mark.
 
