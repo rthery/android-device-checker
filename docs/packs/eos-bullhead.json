@@ -71,13 +71,6 @@
   ],
   "waivers": [
     {
-      "requirement": "hw.wifi.works",
-      "checks": [
-        "network.trafficstats"
-      ],
-      "reason": "Kernel 3.10 has no eBPF, which Android 13 traffic accounting needs. Data usage counters cannot work on this kernel."
-    },
-    {
       "requirement": "sw.kernel.wakegestures",
       "checks": [],
       "reason": "Kept on /e/OS on purpose: the software double-tap-to-wake driver ships off by default and is only turned on by the user."

@@ -57,12 +57,12 @@ class PackCatalogTest {
 
     @Test
     fun waiversReachTheTestState() {
-        val trafficStats = catalog.byId.getValue("network.trafficstats")
-        val waiver = catalog.waiverFor(trafficStats)
-        assertEquals("hw.wifi.works", waiver?.requirement)
-        val results = mapOf("network.trafficstats" to CheckResult(CheckStatus.FAIL, "unsupported"))
-        assertEquals(TestState.WAIVED, stateOf(trafficStats, results, emptyMap(), rom = Rom.LINEAGE, run = null, waiver = waiver))
-        assertNull(catalog.waiverFor(catalog.byId.getValue("network.wifi")))
+        val wakeGestures = catalog.byId.getValue("kernel.wakegestures")
+        val waiver = catalog.waiverFor(wakeGestures)
+        assertEquals("sw.kernel.wakegestures", waiver?.requirement)
+        val results = mapOf("kernel.wakegestures" to CheckResult(CheckStatus.FAIL, "software driver"))
+        assertEquals(TestState.WAIVED, stateOf(wakeGestures, results, emptyMap(), rom = Rom.EOS, run = null, waiver = waiver))
+        assertNull(catalog.waiverFor(catalog.byId.getValue("network.trafficstats")))
         assertEquals(eos.theme, catalog.theme)
     }
 }

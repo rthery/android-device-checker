@@ -66,15 +66,7 @@
       "contains": "Li-ion"
     }
   ],
-  "waivers": [
-    {
-      "requirement": "hw.wifi.works",
-      "checks": [
-        "network.trafficstats"
-      ],
-      "reason": "Kernel 3.10 has no eBPF, which Android 13 and later traffic accounting needs."
-    }
-  ],
+  "waivers": [],
   "theme": {
     "accentSeed": "#167C80",
     "cornerScale": 1.0,
