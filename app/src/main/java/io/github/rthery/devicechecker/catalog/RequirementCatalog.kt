@@ -133,7 +133,7 @@ object RequirementCatalog {
         Requirement(
             "sw.kernel.release", Section.KERNEL, SHOULD,
             "The kernel is accepted for the LineageOS release: 4.4 and 4.9 only up to 22.2, and 4.14 or later with eBPF backports equivalent to 5.4 from 23.0.",
-            AUTOMATED, listOf("kernel.release"), lineageOnly = true,
+            AUTOMATED, listOf("kernel.release"), rom = Rom.LINEAGE,
         ),
 
         Requirement("sw.selinux", Section.SECURITY, MUST, "SELinux is Enforcing.", AUTOMATED, listOf("selinux", "selinux.denials")),
