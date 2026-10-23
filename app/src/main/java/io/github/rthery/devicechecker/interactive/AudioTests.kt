@@ -59,6 +59,16 @@ private const val SIGNAL_THRESHOLD_DBFS = -45.0
 private const val SKIP_START_MS = 200
 private const val MAX_FIRST_READ_MS = 500L
 private const val MIN_VOLUME_RATIO = 0.6f
+private const val WORN_VOLUME_RATIO = 0.25f
+private const val SPEAKER_TONE_AMPLITUDE = 0.6
+private const val WORN_TONE_AMPLITUDE = 0.1
+
+/** Outputs held against the ear, where the speaker test level would hurt. */
+private val WORN_OUTPUTS = setOf(
+    AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+    AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+    Compat.bleHeadsetType, AudioDeviceInfo.TYPE_HEARING_AID,
+)
 
 private val TESTABLE_OUTPUTS = setOf(
     AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
@@ -201,9 +211,11 @@ private fun AudioOutputTest(scope: TestScope) {
 
 internal suspend fun playTone(audio: AudioManager, device: AudioDeviceInfo) = withContext(Dispatchers.IO) {
     val communication = device.needsCommunicationMode()
+    val worn = device.type in WORN_OUTPUTS
+    val amplitude = if (worn) WORN_TONE_AMPLITUDE else SPEAKER_TONE_AMPLITUDE
     val samples = ShortArray(SAMPLE_RATE * TONE_MS / 1000) { i ->
         val fade = minOf(1.0, i / 2400.0, (SAMPLE_RATE * TONE_MS / 1000 - i) / 2400.0)
-        (sin(2 * PI * TONE_HZ * i / SAMPLE_RATE) * Short.MAX_VALUE * 0.6 * fade).toInt().toShort()
+        (sin(2 * PI * TONE_HZ * i / SAMPLE_RATE) * Short.MAX_VALUE * amplitude * fade).toInt().toShort()
     }
     val usage = if (communication) AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA
     val track = AudioTrack.Builder()
@@ -214,18 +226,20 @@ internal suspend fun playTone(audio: AudioManager, device: AudioDeviceInfo) = wi
         .build()
     val stream = if (communication) AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC
     val previousVolume = audio.getStreamVolume(stream)
-    val audibleVolume = (audio.getStreamMaxVolume(stream) * MIN_VOLUME_RATIO).toInt()
+    val targetVolume = (audio.getStreamMaxVolume(stream) * if (worn) WORN_VOLUME_RATIO else MIN_VOLUME_RATIO).toInt().coerceAtLeast(1)
+    // Headphones are held at a comfortable level, louder outputs are only raised to be heard.
+    val changeVolume = if (worn) previousVolume != targetVolume else previousVolume < targetVolume
     var unroute: (() -> Unit)? = null
     try {
         if (communication) unroute = Compat.routeCommunication(audio, device)
-        if (previousVolume < audibleVolume) runCatching { audio.setStreamVolume(stream, audibleVolume, 0) }
+        if (changeVolume) runCatching { audio.setStreamVolume(stream, targetVolume, 0) }
         track.write(samples, 0, samples.size)
         track.setPreferredDevice(device)
         track.play()
         delay(TONE_MS + 200L)
     } finally {
         track.release()
-        if (previousVolume < audibleVolume) runCatching { audio.setStreamVolume(stream, previousVolume, 0) }
+        if (changeVolume) runCatching { audio.setStreamVolume(stream, previousVolume, 0) }
         unroute?.invoke()
     }
 }
