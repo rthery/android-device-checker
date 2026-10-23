@@ -63,9 +63,9 @@ private const val WORN_VOLUME_RATIO = 0.25f
 private const val SPEAKER_TONE_AMPLITUDE = 0.6
 private const val WORN_TONE_AMPLITUDE = 0.1
 
-/** Outputs held against the ear, where the speaker test level would hurt. */
+/** Outputs that can be held against the ear, where the speaker test level would hurt. The jack reports some headphones as line out. */
 private val WORN_OUTPUTS = setOf(
-    AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+    AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_LINE_ANALOG,
     AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
     Compat.bleHeadsetType, AudioDeviceInfo.TYPE_HEARING_AID,
 )
