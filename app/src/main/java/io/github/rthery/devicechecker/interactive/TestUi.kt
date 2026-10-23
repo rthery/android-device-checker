@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -142,7 +143,7 @@ data class GuidedDraft(val answers: Map<Int, StepAnswer> = emptyMap(), val outpu
     fun isEmpty() = answers.isEmpty() && outputs.isEmpty()
 }
 
-/** One step at a time: earlier answers stay listed, the current step gets three large answers. Unanswered steps can be left for later. */
+/** One step at a time: the other steps stay listed and open on tap, the current step gets three large answers. Unanswered steps can be left for later. */
 @Composable
 fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Step>) {
     val english = LocalContext.current.englishContext()
@@ -150,21 +151,23 @@ fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Ste
     val draft = remember { store.loadGuidedDraft(testId) }
     val answers = remember { mutableStateMapOf<Int, StepAnswer>().apply { putAll(draft.answers.filterKeys { it in steps.indices }) } }
     val outputs = remember { mutableStateMapOf<Int, String>().apply { putAll(draft.outputs.filterKeys { it in steps.indices }) } }
-    var current by rememberSaveable(testId) { mutableIntStateOf(steps.indices.firstOrNull { it !in answers } ?: 0) }
+    var current by rememberSaveable(testId) { mutableIntStateOf(firstStepToAnswer(steps.size, answers)) }
     val coroutines = rememberCoroutineScope()
     fun persist() = store.saveGuidedDraft(testId, GuidedDraft(answers.toMap(), outputs.toMap()))
     val step = steps[current]
     // Earlier answers and the intro can push the current step off screen on a resumed test.
     val currentStep = remember { BringIntoViewRequester() }
     LaunchedEffect(current) { if (current > 0) currentStep.bringIntoView() }
+    val jumpLabel = stringResource(R.string.guided_open_step)
+    @Composable
+    fun OtherStep(index: Int) = AnswerLine(
+        index + 1, StepLine(answers[index]?.state ?: TestState.NOT_RUN, steps[index].text.resolve()), compact = true,
+        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = jumpLabel) { current = index }.padding(vertical = 6.dp),
+    )
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Instructions(intro.resolve())
-        if (current > 0) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            steps.take(current).forEachIndexed { index, done ->
-                answers[index]?.let { AnswerLine(index + 1, StepLine(it.state, done.text.resolve()), compact = true) }
-            }
-        }
+        if (current > 0) Column { (0 until current).forEach { OtherStep(it) } }
         Column(Modifier.bringIntoViewRequester(currentStep), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -195,7 +198,7 @@ fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Ste
                 val onClick: () -> Unit = {
                     answers[current] = answer
                     persist()
-                    if (current < steps.lastIndex) current++ else scope.finish(summarize(english, steps, answers, outputs))
+                    nextStepToAnswer(current, steps.size, answers)?.let { current = it } ?: scope.finish(summarize(english, steps, answers, outputs))
                 }
                 val modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
                 if (answer == StepAnswer.PASS) Button(onClick = onClick, modifier = modifier, shape = MaterialTheme.shapes.large, content = content)
@@ -212,8 +215,21 @@ fun GuidedSteps(scope: TestScope, testId: String, intro: UiText, steps: List<Ste
                 TextButton(onClick = { scope.finish(summarize(english, steps, answers, outputs)) }) { Text(stringResource(R.string.guided_finish_later)) }
             }
         }
+        if (current < steps.lastIndex) Column { (current + 1..steps.lastIndex).forEach { OtherStep(it) } }
     }
 }
+
+/** First unanswered step, else the first broken or untestable one, so a redo opens where it is needed. */
+internal fun firstStepToAnswer(count: Int, answers: Map<Int, StepAnswer>): Int =
+    (0 until count).firstOrNull { it !in answers }
+        ?: (0 until count).firstOrNull { answers[it] == StepAnswer.FAIL }
+        ?: (0 until count).firstOrNull { answers[it] == StepAnswer.SKIP }
+        ?: 0
+
+/** Next step after [current] not answered as working, then any unanswered one before it; null when nothing is left. */
+internal fun nextStepToAnswer(current: Int, count: Int, answers: Map<Int, StepAnswer>): Int? =
+    (current + 1 until count).firstOrNull { answers[it] != StepAnswer.PASS }
+        ?: (0 until current).firstOrNull { it !in answers }
 
 internal fun summarize(english: Context, steps: List<Step>, answers: Map<Int, StepAnswer>, outputs: Map<Int, String>): CheckResult {
     val details = steps.indices.joinToString("\n") { i ->

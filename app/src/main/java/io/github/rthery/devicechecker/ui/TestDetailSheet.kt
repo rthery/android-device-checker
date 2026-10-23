@@ -284,8 +284,8 @@ private fun RawOutput(details: String, onBack: () -> Unit) {
 
 @Composable
 /** [compact] keeps one line per answer, for the steps already behind the current one. */
-internal fun AnswerLine(number: Int, line: StepLine, compact: Boolean = false) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+internal fun AnswerLine(number: Int, line: StepLine, compact: Boolean = false, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         StateDot(line.answer, Modifier.size(24.dp))
         Text(
             "$number. ${line.text}", style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,

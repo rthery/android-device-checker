@@ -156,6 +156,7 @@
     <string name="guided_step_of">Step %1$d of %2$d</string>
     <string name="guided_previous_step">Previous step</string>
     <string name="guided_finish_later">Save and finish later</string>
+    <string name="guided_open_step">Open this step</string>
     <string name="guided_run_title">Guided run</string>
     <string name="guided_run_position">Test %1$d of %2$d</string>
     <string name="guided_run_redo">Redoing a finished test</string>
