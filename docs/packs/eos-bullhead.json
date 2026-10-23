@@ -74,6 +74,11 @@
       "requirement": "sw.kernel.wakegestures",
       "checks": [],
       "reason": "Kept on /e/OS on purpose: the software double-tap-to-wake driver ships off by default and is only turned on by the user."
+    },
+    {
+      "requirement": "sw.playintegrity",
+      "checks": [],
+      "reason": "Upstream /e/OS behaviour, kept on purpose: frameworks/base SafetyNetHooks reports a Pixel 2 fingerprint to the microG process and blocks hardware key attestation on every /e/OS device. Basic integrity passes with it."
     }
   ],
   "theme": {
